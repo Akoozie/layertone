@@ -177,7 +177,7 @@ printed swap heights.
 
 ## Status: beta
 
-This is the first public beta. It works end to end, but expect rough edges:
+layertone is in beta. It works end to end, but expect rough edges:
 
 - TD values are estimates until you calibrate your own filaments.
 - Wall joins (magnet fit, seam alignment) are tested on short runs, not yet on a full wall.
@@ -187,10 +187,17 @@ Bug reports and print photos are welcome in [Issues](https://github.com/Akoozie/
 
 ## How it works
 
-The colour model, the swap planner and every design decision are written up in
-[`docs/adr`](docs/adr), and the project's vocabulary (Stack, Swap, TD, Palette, Backing) is in
-[`CONTEXT.md`](CONTEXT.md). The engine is plain Python (numpy, Pillow); the page is a single HTML file
-served by Python's own HTTP server, with no build step.
+- **Colour model:** each filament hides what is under it a little more with every layer, set by its
+  TD. layertone predicts the colour of every possible stack height from that.
+- **Swap planning:** it tries the possible swap layers, scores each plan by how close the predicted
+  colours get to the picture (CIE colour difference), and keeps the best one.
+- **Heights:** every pixel gets the stack height whose predicted colour is nearest, then specks too
+  small to print are cleaned up and the surface is turned into a light mesh.
+- **Export:** the mesh goes into a Bambu Studio project template with the filament changes placed at
+  the swap heights.
+
+The engine is plain Python (numpy, Pillow); the page is a single HTML file served by Python's own
+HTTP server, with no build step.
 
 Run the tests with `python -m pytest -q`.
 

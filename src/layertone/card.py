@@ -463,7 +463,7 @@ def svg_card(svg, stack=None, thickness=0.8, px=0.08, corner=CORNER, back=None, 
 class InlayCard:
     """A Card printed face down, so its front is smooth: the front is the first layers
     on the plate, every colour a flat part side by side (flush, no relief), and the
-    body behind them is one filament. See ADR 0007."""
+    body behind them is one filament."""
     filaments: list                   # [body, inlays...]
     labels: np.ndarray                # filament index per pixel, as seen from the front
     depth: float                      # mm of front layers that hold the inlays
@@ -580,7 +580,7 @@ def main(argv=None):
     p.add_argument("--back", help="with --svg: filament for the back of the card (printed first)")
     p.add_argument("--finish", choices=["inlay", "engrave", "relief"], default="inlay",
                    help="inlay: smooth, printed face down, colours flush (default); engrave: face up, text cut into "
-                        "the card colour on top (one swap for two filaments); relief: raised text (ADR 0004)")
+                        "the card colour on top (one swap for two filaments); relief: raised text")
     p.add_argument("--relief", action="store_true", help="same as --finish relief")
     p.add_argument("--smooth-plate", action="store_true", help="inlay: print on the smooth PEI plate (glossy, crisper "
                                                                 "face) instead of the textured PEI plate")

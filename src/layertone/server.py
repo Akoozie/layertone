@@ -1,6 +1,6 @@
 """The local page: `layertone-ui`, then open http://127.0.0.1:8765.
 
-Plain standard-library HTTP server, no build step (ADR 0002). The picture is
+Plain standard-library HTTP server, no build step. The picture is
 uploaded once and kept in memory; the page then asks for previews as the
 sliders move, and for a 3MF when you export.
 """
