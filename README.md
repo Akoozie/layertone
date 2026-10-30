@@ -99,7 +99,7 @@ tile is labelled so you know where it goes.
 layertone is a Python package. You need Python 3.10 or newer.
 
 ```bash
-pip install "layertone @ https://github.com/Akoozie/layertone/releases/download/v0.1.0-beta.1/layertone-0.1.0b1-py3-none-any.whl"
+pip install "layertone @ https://github.com/Akoozie/layertone/releases/download/v0.1.0-beta.2/layertone-0.1.0b2-py3-none-any.whl"
 ```
 
 Or from source:

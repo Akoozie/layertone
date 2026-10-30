@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="85mm" height="55mm" viewBox="0 0 85 55">
+<rect width="85" height="55" fill="#FFFFFF"/>
+<text x="-3.50" y="66.00" font-family="Inter Display" font-weight="700" font-size="52" fill="#161616" stroke="#161616" stroke-width="0.000" stroke-linejoin="round" letter-spacing="-3.120" text-anchor="start">AD</text>
+<text x="79.00" y="10.00" font-family="Inter" font-weight="600" font-size="3.0" fill="#161616" stroke="#161616" stroke-width="0.126" stroke-linejoin="round" letter-spacing="0.360" text-anchor="end">ALEX DOE</text>
+<text x="79.00" y="14.50" font-family="Inter" font-weight="600" font-size="3.0" fill="#161616" stroke="#161616" stroke-width="0.126" stroke-linejoin="round" letter-spacing="0.000" text-anchor="end">Layered prints &amp; 3D design</text>
+<text x="79.00" y="22.00" font-family="Inter" font-weight="600" font-size="3.0" fill="#161616" stroke="#161616" stroke-width="0.126" stroke-linejoin="round" letter-spacing="0.000" text-anchor="end">alex@example.com</text>
+<text x="79.00" y="26.50" font-family="Inter" font-weight="600" font-size="3.0" fill="#161616" stroke="#161616" stroke-width="0.126" stroke-linejoin="round" letter-spacing="0.000" text-anchor="end">+31 6 1234 5678</text>
+</svg>

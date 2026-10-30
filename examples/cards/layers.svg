@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="85mm" height="55mm" viewBox="0 0 85 55">
+<rect width="85" height="55" fill="#FFFFFF"/>
+<rect x="47" y="1.875" width="40" height="0.450" fill="#161616"/>
+<rect x="47" y="5.008" width="40" height="0.584" fill="#161616"/>
+<rect x="47" y="8.141" width="40" height="0.719" fill="#161616"/>
+<rect x="47" y="11.273" width="40" height="0.853" fill="#161616"/>
+<rect x="47" y="14.406" width="40" height="0.988" fill="#161616"/>
+<rect x="47" y="17.539" width="40" height="1.122" fill="#161616"/>
+<rect x="47" y="20.672" width="40" height="1.256" fill="#161616"/>
+<rect x="47" y="23.805" width="40" height="1.391" fill="#161616"/>
+<rect x="47" y="26.938" width="40" height="1.525" fill="#161616"/>
+<rect x="47" y="30.070" width="40" height="1.659" fill="#161616"/>
+<rect x="47" y="33.203" width="40" height="1.794" fill="#161616"/>
+<rect x="47" y="36.336" width="40" height="1.928" fill="#161616"/>
+<rect x="47" y="39.469" width="40" height="2.062" fill="#161616"/>
+<rect x="47" y="42.602" width="40" height="2.197" fill="#161616"/>
+<rect x="47" y="45.734" width="40" height="2.331" fill="#161616"/>
+<rect x="47" y="48.867" width="40" height="2.466" fill="#161616"/>
+<rect x="47" y="52.000" width="40" height="2.600" fill="#161616"/>
+<text x="5.70" y="17.00" font-family="Inter Display" font-weight="300" font-size="8.4" fill="#161616" stroke="#161616" stroke-width="0.000" stroke-linejoin="round" letter-spacing="-0.168" text-anchor="start">Alex</text>
+<text x="5.70" y="26.50" font-family="Inter Display" font-weight="300" font-size="8.4" fill="#161616" stroke="#161616" stroke-width="0.000" stroke-linejoin="round" letter-spacing="-0.168" text-anchor="start">Doe</text>
+<text x="6.00" y="44.50" font-family="Inter" font-weight="600" font-size="3.0" fill="#161616" stroke="#161616" stroke-width="0.126" stroke-linejoin="round" letter-spacing="0.180" text-anchor="start">LAYERED PRINTS</text>
+<text x="6.00" y="49.00" font-family="Inter" font-weight="600" font-size="3.0" fill="#161616" stroke="#161616" stroke-width="0.126" stroke-linejoin="round" letter-spacing="0.030" text-anchor="start">alex@example.com</text>
+</svg>
