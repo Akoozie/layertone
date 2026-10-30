@@ -1,12 +1,5 @@
 <p align="center">
-  <img src="examples/logo/layertone_rings_mark.svg" width="88" alt="">
-</p>
-
-<h1 align="center">layertone</h1>
-
-<p align="center">
-  <b>Turn any picture into a layered filament print.</b><br>
-  Stacked layers of a few filaments blend into the picture's tones, ready to slice in Bambu Studio.
+  <img src="docs/images/banner.png" alt="layertone: photos in, layered filament prints out. The app showing a snowy owl photo next to how the print will look">
 </p>
 
 <p align="center">
@@ -16,9 +9,17 @@
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
 </p>
 
+## From photo to print
+
 <p align="center">
-  <img src="docs/images/hero.png" alt="Two layered prints: a wolf in front of a castle with a stepped frame, and a dragon over a castle with a bevelled frame">
+  <img src="docs/images/photo-owl.png" alt="A snowy owl photo, and the same picture as a three-filament layered print with a bevelled frame">
+  <br><br>
+  <img src="docs/images/photo-lighthouse.png" alt="A colour photo of a lighthouse in a storm, and the same picture as a black and white two-filament print">
 </p>
+
+Left: the photo you start from. Right: a render of the print layertone makes from it, with only
+**black, blue and white** filament (owl) or just **black and white** (lighthouse). The tones come from how
+thick each filament is stacked, not from more colours.
 
 ---
 
@@ -139,7 +140,7 @@ layertone-card "Alex Doe" "Maker" "alex@example.com" --qr https://example.com --
 ```
 
 Each run writes `<name>.3mf` (Bambu Studio project), `<name>.stl` and `<name>.png` (preview), and prints
-the swap heights. Try it with the demo pictures in [`examples/pictures`](examples/pictures).
+the swap heights. Try it with the demo pictures in [`examples/pictures`](examples/pictures) (`owl.png`, `lighthouse.png` and two illustrations).
 
 ## Commands
 
@@ -198,7 +199,7 @@ Run the tests with `python -m pytest -q`.
 - Inspired by layered "filament painting" prints popularised by HueForge. layertone is an independent
   project, not affiliated with HueForge, Bambu Lab or Kromacut, and uses none of their code.
 - [Inter](https://rsms.me/inter/) font (SIL Open Font License) and [three.js](https://threejs.org) (MIT) are bundled.
-- Demo pictures are AI-generated.
+- Demo pictures are AI-generated (Krea 2, run locally).
 
 ## License
 
