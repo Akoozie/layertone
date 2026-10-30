@@ -1,0 +1,15 @@
+*.stl
+*.png
+!docs/**/*.png
+!docs/*/*.png
+out/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+logs/
+.worktrees/
+dist/
+build/
+*.3mf
+!src/layertone/templates/*.3mf
+!examples/pictures/*.png

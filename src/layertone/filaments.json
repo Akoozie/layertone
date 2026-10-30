@@ -1,0 +1,5 @@
+{
+  "black": {"name": "Generic PLA HS Black", "hex": "#161616", "td": 0.6, "slot": 2},
+  "jade_white": {"name": "Bambu PLA Jade White", "hex": "#FFFFFF", "td": 3.0, "slot": 3},
+  "blue": {"name": "eSUN PLA+ Blue", "hex": "#054795", "td": 1.4, "slot": 1}
+}

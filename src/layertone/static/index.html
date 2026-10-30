@@ -1,0 +1,1623 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layertone</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='18' width='24' height='8' rx='2' fill='%23161618'/%3E%3Crect x='6' y='11' width='20' height='8' rx='2' fill='%237f8a86'/%3E%3Crect x='8' y='4' width='16' height='8' rx='2' fill='%23e9efe9'/%3E%3C/svg%3E">
+<script type="importmap">{"imports": {"three": "/vendor/three.module.min.js"}}</script>
+<style>
+  /* ---- Tokens: light, then dark (system or forced) ---- */
+  :root {
+    color-scheme: light;
+    --bg: #eceae6; --panel: #fbfaf8; --raised: #ffffff; --sunken: #f2f0ec; --stage: #e2dfda;
+    --ink: #1b1b1d; --ink-2: #4a4a50; --muted: #7c7b80; --line: #e3e0da; --line-2: #d3cfc8;
+    --accent: #1f7a5c; --accent-ink: #ffffff; --accent-soft: #1f7a5c1a; --focus: #1f7a5c66;
+    --good: #1f7a5c; --warn: #b7791f; --bad: #c2410c;
+    --dot: #00000014; --shadow: 0 1px 2px #0000000d, 0 4px 16px #00000010;
+    --r: 8px; --r-sm: 6px;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111113; --panel: #18181b; --raised: #212125; --sunken: #141416; --stage: #0c0c0e;
+    --ink: #ececef; --ink-2: #b9b9c0; --muted: #85858d; --line: #26262b; --line-2: #33333a;
+    --accent: #3fbf8f; --accent-ink: #06231a; --accent-soft: #3fbf8f1f; --focus: #3fbf8f66;
+    --good: #3fbf8f; --warn: #e0a93f; --bad: #f07a4a;
+    --dot: #ffffff0d; --shadow: 0 1px 2px #00000066, 0 8px 24px #00000055;
+  } }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #111113; --panel: #18181b; --raised: #212125; --sunken: #141416; --stage: #0c0c0e;
+    --ink: #ececef; --ink-2: #b9b9c0; --muted: #85858d; --line: #26262b; --line-2: #33333a;
+    --accent: #3fbf8f; --accent-ink: #06231a; --accent-soft: #3fbf8f1f; --focus: #3fbf8f66;
+    --good: #3fbf8f; --warn: #e0a93f; --bad: #f07a4a;
+    --dot: #ffffff0d; --shadow: 0 1px 2px #00000066, 0 8px 24px #00000055;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); overflow: hidden;
+    font: 13px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased; }
+  .num, output, .val { font-variant-numeric: tabular-nums; }
+  svg.i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7;
+    stroke-linecap: round; stroke-linejoin: round; }
+  a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  [hidden] { display: none !important; }
+
+  /* ---- App shell ---- */
+  .app { height: 100vh; display: grid; grid-template-rows: 52px 1fr; }
+  .topbar { display: flex; align-items: center; gap: 14px; padding: 0 12px 0 16px; background: var(--panel);
+    border-bottom: 1px solid var(--line); min-width: 0; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 650; font-size: 14px; letter-spacing: -.01em; }
+  .brand svg { width: 22px; height: 22px; }
+  .sep { width: 1px; height: 22px; background: var(--line-2); }
+  .topbar .title { border: 1px solid transparent; background: none; color: var(--ink); font: inherit; font-weight: 500;
+    padding: 5px 8px; border-radius: var(--r-sm); width: 220px; }
+  .topbar .title:hover { border-color: var(--line-2); } .topbar .title:focus { border-color: var(--accent); outline: none; background: var(--raised); }
+  .spacer { flex: 1; }
+  .status { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-2); }
+  .status.live .dot { background: var(--good); }
+  .status.busy .dot { background: var(--warn); animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  .work { display: grid; grid-template-columns: 300px minmax(0, 1fr) 288px; min-height: 0; }
+  .side { background: var(--panel); min-height: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+  .side.left { border-right: 1px solid var(--line); }
+  .side.right { border-left: 1px solid var(--line); }
+  @media (max-width: 1180px) { .work { grid-template-columns: 256px minmax(0, 1fr) 236px; } .stat .v { font-size: 15px; } .stat { padding: 9px 10px; } .stats { grid-template-columns: 1fr; } }
+  @media (max-width: 900px) {   /* narrow window: one scrolling column */
+    body { overflow: auto; }
+    .app { height: auto; grid-template-rows: auto 1fr; }
+    .topbar { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+    .topbar .spacer { flex-basis: 100%; height: 0; margin: 0; }
+    .work { grid-template-columns: 1fr; }
+    .stage { order: -1; grid-template-rows: auto minmax(0, 1fr) auto; }
+    .toolbar { flex-wrap: wrap; padding: 6px 12px; }
+    .toolbar .grp.zoom { display: none; }
+    .views { height: 62vh; }
+    .side.left, .side.right { border: 0; }
+    .status, .topbar .sep, .topbar .title { display: none; }
+    .seg button { padding: 0 8px; }
+  }
+
+  /* ---- Controls ---- */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 32px; padding: 0 12px;
+    border: 1px solid var(--line-2); border-radius: var(--r-sm); background: var(--raised); color: var(--ink);
+    font: inherit; font-weight: 500; line-height: 1; cursor: pointer; white-space: nowrap; transition: background .12s, border-color .12s; }
+  .btn:hover:not(:disabled) { border-color: var(--muted); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .btn.primary:hover:not(:disabled) { filter: brightness(1.08); border-color: var(--accent); }
+  .btn.ghost { background: none; border-color: transparent; color: var(--ink-2); }
+  .btn.ghost:hover:not(:disabled) { background: var(--sunken); border-color: transparent; color: var(--ink); }
+  .btn.sm { height: 28px; padding: 0 9px; font-size: 12px; }
+  .btn.icon { width: 30px; padding: 0; }
+  .btn.block { width: 100%; }
+
+  .seg { display: inline-flex; padding: 2px; gap: 2px; background: var(--sunken); border: 1px solid var(--line); border-radius: 8px; }
+  .seg button { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border: 0; border-radius: 6px;
+    background: none; color: var(--muted); font: inherit; font-size: 12px; font-weight: 500; line-height: 1; cursor: pointer; }
+  .seg button:hover { color: var(--ink); }
+  .seg button[aria-pressed="true"] { background: var(--raised); color: var(--ink); box-shadow: 0 1px 2px #0000001f, 0 0 0 1px var(--line); }
+  .seg.icons button { padding: 0 8px; }
+
+  select, input[type=text], input[type=number] { height: 30px; padding: 0 9px; border: 1px solid var(--line-2); border-radius: var(--r-sm);
+    background: var(--raised); color: var(--ink); font: inherit; min-width: 0; }
+  select { appearance: none; padding-right: 28px; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; }
+  select:hover, input[type=text]:hover, input[type=number]:hover { border-color: var(--muted); }
+  select:focus, input[type=text]:focus, input[type=number]:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+  input[type=color] { width: 30px; height: 30px; padding: 3px; border: 1px solid var(--line-2); border-radius: var(--r-sm); background: var(--raised); cursor: pointer; }
+  input[type=color]::-webkit-color-swatch-wrapper { padding: 0; } input[type=color]::-webkit-color-swatch { border: 0; border-radius: 3px; }
+  input[type=color]::-moz-color-swatch { border: 0; border-radius: 3px; }
+
+  /* Range: thin track, filled up to the thumb via --p */
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 18px; margin: 0; background: none; cursor: pointer; --p: 50%; }
+  input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px;
+    background: linear-gradient(to right, var(--accent) var(--p), var(--line-2) var(--p)); }
+  input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--line-2); }
+  input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border-radius: 50%;
+    background: #fff; border: 0; box-shadow: 0 0 0 1px #0000002e, 0 1px 3px #00000040; transition: transform .1s; }
+  input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 0 0 1px #0000002e, 0 1px 3px #00000040; }
+  input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.15); }
+  input[type=range]:focus-visible { outline: none; } input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--focus); }
+
+  /* ---- Sidebar sections ---- */
+  .sec { padding: 14px 16px 16px; border-bottom: 1px solid var(--line); }
+  .sec > summary, .sec-h { display: flex; align-items: center; justify-content: space-between; list-style: none; margin: 0 0 12px;
+    font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  details.sec > summary { cursor: pointer; margin: 0; user-select: none; }
+  details.sec > summary::-webkit-details-marker { display: none; }
+  details.sec > summary::after { content: ""; width: 7px; height: 7px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0;
+    transform: rotate(-45deg); transition: transform .15s; margin-right: 3px; }
+  details.sec[open] > summary { margin-bottom: 12px; } details.sec[open] > summary::after { transform: rotate(45deg); }
+  details.sec:not([open]) { padding-bottom: 14px; }
+  .sec-h a, .sec-h .btn { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 12px; }
+
+  .field { margin-top: 14px; } .field:first-of-type { margin-top: 0; }
+  .flabel { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+  .flabel label { color: var(--ink-2); font-weight: 500; }
+  .flabel output { color: var(--muted); font-size: 12px; }
+  .hint { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+  .hint:empty { display: none; }
+
+  /* Picture card */
+  .pic { display: flex; gap: 12px; align-items: center; }
+  .pic .thumb { width: 52px; height: 52px; border-radius: var(--r-sm); background: var(--sunken) center/cover; border: 1px solid var(--line); flex: none;
+    display: grid; place-items: center; color: var(--muted); }
+  .pic .meta { min-width: 0; flex: 1; }
+  .pic .name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pic .sub { color: var(--muted); font-size: 12px; }
+
+  /* Stack */
+  #stack { display: flex; flex-direction: column; gap: 6px; }
+  .row { display: flex; gap: 4px; align-items: center; border-radius: 8px; transition: transform .12s; }
+  .row.dragging { opacity: .45; }
+  .row.drop-before { box-shadow: 0 -2px 0 var(--accent); } .row.drop-after { box-shadow: 0 2px 0 var(--accent); }
+  .grip { width: 18px; height: 40px; flex: none; display: grid; place-items: center; border: 0; background: none; padding: 0;
+    color: var(--muted); cursor: grab; border-radius: 5px; font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .grip:hover { background: var(--sunken); color: var(--ink); }
+  .grip .n { display: block; } .grip svg { display: none; width: 12px; height: 12px; }
+  .row:hover .grip .n, .grip:focus-visible .n { display: none; } .row:hover .grip svg, .grip:focus-visible svg { display: block; }
+  .pick { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 30px 0 8px; text-align: left; position: relative;
+    border: 1px solid var(--line-2); border-radius: 8px; background: var(--raised); color: var(--ink); font: inherit; cursor: pointer; }
+  .pick:hover { border-color: var(--muted); }
+  .pick[aria-expanded="true"] { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .pick::after { content: ""; position: absolute; right: 12px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border: solid var(--muted);
+    border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+  .pick .sw { width: 26px; height: 26px; border-radius: 6px; }
+  .pick .nm { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick .mt { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pick .tx { min-width: 0; line-height: 1.3; }
+  .pick.none .nm { color: var(--muted); font-weight: 400; }
+  /* Picker popover */
+  #picker { position: fixed; z-index: 40; width: 300px; max-height: 360px; overflow: auto; padding: 5px; margin: 0;
+    background: var(--panel); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: 0 16px 40px #00000040; }
+  #picker[hidden] { display: none; }
+  #picker .opt { width: 100%; display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 10px; padding: 7px 8px;
+    border: 0; border-radius: 7px; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+  #picker .opt:hover, #picker .opt:focus-visible { background: var(--sunken); outline: none; }
+  #picker .opt[aria-selected="true"] { background: var(--accent-soft); }
+  #picker .opt .sw { width: 24px; height: 24px; }
+  #picker .opt > span:nth-child(2) { min-width: 0; } #picker .opt > span:nth-child(2) > div:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #picker .opt .mt { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  #picker .opt .tags { display: flex; gap: 4px; }
+  #picker .tag2 { padding: 2px 6px; border-radius: 5px; background: var(--sunken); border: 1px solid var(--line); color: var(--ink-2);
+    font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  #picker .opt.used { opacity: .55; }
+  #picker hr { border: 0; border-top: 1px solid var(--line); margin: 5px 2px; }
+  #picker .foot { color: var(--accent); font-weight: 500; grid-template-columns: 1fr; }
+  .slot { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border-radius: 6px; font-size: 11px; font-weight: 600;
+    color: var(--muted); background: var(--sunken); border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .slot.on { color: var(--ink-2); }
+  .sw { width: 22px; height: 22px; border-radius: 5px; border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); flex: none;
+    background-image: linear-gradient(135deg, transparent 46%, var(--line-2) 46% 54%, transparent 54%); }
+  .sw.on { background-image: none; box-shadow: inset 0 0 0 1px #ffffff1a; }
+  .stack-cap { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; margin: 0 0 6px 22px; }
+  body:not(.flat) .flatOnly { display: none; }
+  #suggestOut { font-size: 12px; color: var(--ink-2); }
+  #suggestOut ol { padding-left: 18px; margin: 6px 0 0; } #suggestOut li { margin: 3px 0; }
+
+  /* ---- Stage ---- */
+  .stage { position: relative; display: grid; grid-template-rows: 48px minmax(0, 1fr) auto; min-height: 0; min-width: 0;
+    background-color: var(--stage); background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 18px 18px; }
+  .toolbar { display: flex; align-items: center; gap: 8px; padding: 0 12px; min-width: 0; }
+  .toolbar .grp { display: flex; align-items: center; gap: 6px; padding: 3px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; box-shadow: var(--shadow); }
+  .toolbar .grp .seg { border: 0; background: none; padding: 0; }
+  .toolbar .grp input[type=range] { width: 80px; }
+  .toolbar .vsep { width: 1px; height: 18px; background: var(--line-2); }
+  #textIn { width: 150px; height: 26px; }
+  #ink { width: 26px; height: 26px; padding: 2px; }
+  .views { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 4px 16px 12px; min-height: 0; }
+  .pane { position: relative; min-height: 0; border-radius: 10px; overflow: hidden; touch-action: none; }
+  body:not(.zoomed) .pane:not(.a) { touch-action: pan-y; }
+  .pane .tag { position: absolute; z-index: 2; top: 10px; left: 10px; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 500;
+    background: color-mix(in srgb, var(--panel) 88%, transparent); color: var(--ink-2); border: 1px solid var(--line); backdrop-filter: blur(6px);
+    pointer-events: auto; max-width: calc(100% - 20px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fit { position: absolute; inset: 0; display: grid; place-items: center; transform-origin: 0 0; }
+  .fit > canvas, .fit > img { grid-area: 1 / 1; }
+  body.zoomed .pane:not(.a) .fit, body.space .pane .fit { cursor: grab; }
+  body.panning, body.panning * { cursor: grabbing !important; }
+  #beforeCv { display: none; }
+  /* Wipe: one pane, the picture under the print, split by a draggable line */
+  body.wipe .views { grid-template-columns: 1fr; }
+  body.wipe .pane.a { display: none; }
+  body.wipe #beforeCv { display: block; }
+  body.wipe #prevCap { left: auto; right: 10px; }
+  body.wipe .toolbar .grp.tools { opacity: .4; pointer-events: none; }
+  #wipeL { display: none; } body.wipe #wipeL { display: block; }
+  #wipe { display: none; position: absolute; z-index: 3; top: 0; bottom: 0; width: 0; left: 50%; }
+  body.wipe #wipe { display: block; }
+  #wipe::before { content: ""; position: absolute; top: 0; bottom: 0; left: -1px; width: 2px; background: #fff; box-shadow: 0 0 0 1px #0000004d; }
+  #wipe .knob { position: absolute; top: 50%; left: 0; width: 34px; height: 34px; transform: translate(-50%, -50%); border-radius: 50%;
+    display: grid; place-items: center; background: #fff; color: #1b1b1d; box-shadow: 0 2px 10px #00000059; cursor: ew-resize; touch-action: none; }
+  #wipe .knob svg { width: 18px; height: 18px; }
+  .seg button { white-space: nowrap; }
+  @media (max-width: 1320px) { .toolbar .lbl { display: none; } }
+  .zoomv { min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
+  #orig, #prev, #layerCv { display: block; border-radius: 3px; box-shadow: var(--shadow); }
+  #orig { cursor: crosshair; touch-action: none; }
+  .edit { overflow: hidden; border-radius: 10px; }
+  #prev, #layerCv { image-rendering: pixelated; }
+  #prev:not([src]) { display: none; }
+  #layerCv { display: none; }
+  #three { position: absolute; inset: 0; display: none; border-radius: 10px; overflow: hidden; }
+  #three canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+  #cropBox { position: absolute; border: 1.5px solid #fff; outline: 1px dashed #0009; box-shadow: 0 0 0 9999px #0000006b; pointer-events: none; display: none; }
+  .busy { opacity: .55; transition: opacity .2s; }
+  .pane .ph { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+
+  /* Empty state: the whole stage is the drop target */
+  #drop { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--stage);
+    background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 18px 18px; }
+  .drop-card { width: min(440px, 80%); padding: 40px 32px; text-align: center; border: 1.5px dashed var(--line-2); border-radius: 16px;
+    background: color-mix(in srgb, var(--panel) 70%, transparent); cursor: pointer; transition: border-color .15s, background .15s; }
+  .drop-card:hover, #drop.over .drop-card { border-color: var(--accent); background: var(--accent-soft); }
+  .drop-card .big { width: 44px; height: 44px; margin: 0 auto 14px; display: grid; place-items: center; border-radius: 12px; background: var(--raised);
+    border: 1px solid var(--line); color: var(--accent); box-shadow: var(--shadow); }
+  .drop-card h2 { margin: 0 0 4px; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+  .drop-card p { margin: 0; color: var(--muted); }
+  .drop-card .kbd { margin-top: 18px; }
+  .how { display: flex; justify-content: center; gap: 22px; margin-top: 22px; color: var(--muted); font-size: 12px; }
+  .how b { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 6px; border-radius: 50%; background: var(--raised);
+    border: 1px solid var(--line-2); color: var(--ink-2); font-size: 11px; }
+  body.ready #drop { display: none; }
+  .stage.over::after { content: "Drop to replace the picture"; position: absolute; inset: 8px; z-index: 6; display: grid; place-items: center;
+    border: 2px dashed var(--accent); border-radius: 12px; background: var(--accent-soft); color: var(--ink); font-weight: 600; }
+
+  /* Layer timeline */
+  .timeline { margin: 0 16px 14px; padding: 10px 14px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+  .tl-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .tl-head .t { font-weight: 600; font-size: 12px; }
+  #cutV { color: var(--ink-2); font-size: 12px; font-weight: 400; }
+  .tl-track { position: relative; }
+  #bands { display: flex; height: 22px; border-radius: 5px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); }
+  #bands span { flex: 1; position: relative; }
+  #bands span.base { flex: 1; }
+  #bands span.swap::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+  #bands span.off { opacity: .2; }
+  #cut { position: absolute; inset: -4px -3px; width: calc(100% + 6px); height: 30px; }
+  #cut::-webkit-slider-runnable-track { background: none; height: 30px; }
+  #cut::-moz-range-track, #cut::-moz-range-progress { background: none; }
+  #cut::-webkit-slider-thumb { width: 6px; height: 30px; margin-top: 0; border-radius: 3px; background: var(--accent); box-shadow: 0 0 0 2px var(--panel), 0 2px 6px #0006; }
+  #cut::-moz-range-thumb { width: 6px; height: 30px; border-radius: 3px; background: var(--accent); box-shadow: 0 0 0 2px var(--panel), 0 2px 6px #0006; }
+  #cut:hover::-webkit-slider-thumb { transform: none; }
+  .tl-legend { display: flex; justify-content: space-between; margin-top: 8px; color: var(--muted); font-size: 11px; }
+
+  /* ---- Right panel: print plan ---- */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat { padding: 10px 12px; background: var(--sunken); border: 1px solid var(--line); border-radius: var(--r); }
+  .stat .k { color: var(--muted); font-size: 11px; }
+  .stat .v { white-space: nowrap; font-size: 17px; font-weight: 600; letter-spacing: -.01em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .stat .v small { font-size: 12px; font-weight: 500; color: var(--muted); margin: 0 2px; }
+  .stat.wide { grid-column: 1 / -1; }
+  .meter { height: 4px; margin-top: 8px; border-radius: 2px; background: var(--line-2); overflow: hidden; }
+  .meter i { display: block; height: 100%; border-radius: 2px; }
+  .q { font-size: 12px; font-weight: 500; }
+  .steps { list-style: none; margin: 0; padding: 0; position: relative; }
+  .steps li { position: relative; display: grid; grid-template-columns: 22px 1fr; gap: 10px; padding: 0 0 14px; }
+  .steps li:not(:last-child)::before { content: ""; position: absolute; left: 10.5px; top: 22px; bottom: 0; width: 1px; background: var(--line-2); }
+  .steps .chip { width: 22px; height: 22px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
+  .steps .what { font-weight: 500; }
+  .steps li.pause .what { color: #d9822b; }
+  .steps .when { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
+  .swapIn { width: 54px !important; height: 24px !important; padding: 0 6px !important; font-size: 12px !important; }
+  .note { font-size: 12px; color: var(--muted); padding: 10px 12px; border-radius: var(--r); background: var(--sunken); border: 1px solid var(--line); }
+  .note b { color: var(--ink-2); font-weight: 600; }
+  #info .err { color: var(--bad); }
+  .empty-plan { color: var(--muted); padding: 24px 4px; text-align: center; }
+  .linkrow { display: flex; flex-direction: column; gap: 6px; }
+
+  /* ---- Filament library dialog ---- */
+  dialog { width: min(620px, 92vw); padding: 0; border: 1px solid var(--line-2); border-radius: 14px; background: var(--panel); color: var(--ink); box-shadow: 0 24px 64px #00000059; }
+  dialog::backdrop { background: #0000008c; backdrop-filter: blur(2px); }
+  .dlg-h { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px 12px; }
+  .dlg-h h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .dlg-h p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+  .dlg-b { padding: 0 18px; max-height: 56vh; overflow: auto; }
+  .dlg-f { display: flex; align-items: center; gap: 8px; padding: 14px 18px 16px; border-top: 1px solid var(--line); margin-top: 12px; }
+  table.lib { width: 100%; border-collapse: collapse; }
+  table.lib th { position: sticky; top: 0; background: var(--panel); padding: 6px 4px; text-align: left; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--line); }
+  table.lib td { padding: 5px 4px; border-bottom: 1px solid var(--line); }
+  table.lib input[type=text] { width: 100%; }
+  table.lib select { width: 60px; }
+  .fDel { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; color: var(--muted); font-size: 16px; }
+  .fDel:hover { background: var(--sunken); color: var(--bad); text-decoration: none; }
+
+  /* Toast */
+  #exportMsg { position: fixed; z-index: 50; left: 50%; bottom: 24px; transform: translate(-50%, 12px); opacity: 0; pointer-events: none;
+    max-width: min(560px, 90vw); padding: 10px 16px; border-radius: 10px; background: var(--ink); color: var(--panel); font-weight: 500;
+    box-shadow: 0 12px 32px #00000040; transition: opacity .2s, transform .2s; }
+  #exportMsg.show { opacity: 1; transform: translate(-50%, 0); }
+
+  body.flat .layersOnly { display: none !important; }
+  body:not(.card) .cardOnly, body.cardsvg .cardText { display: none !important; }
+  body.card .layersOnly, body.card .notCard, body.card .pane.a, body.card .toolbar .tools, body.card #drop { display: none !important; }
+  body.card .flatOnly { display: none; }
+  body.card .views { grid-template-columns: 1fr; }
+  textarea { width: 100%; min-height: 104px; padding: 7px 9px; border: 1px solid var(--line-2); border-radius: var(--r-sm); resize: vertical;
+    background: var(--raised); color: var(--ink); font: inherit; line-height: 1.5; }
+  textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+  .cardgrid { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; }
+  .cardgrid label { color: var(--ink-2); font-weight: 500; }
+  .warn { font-size: 12px; color: var(--warn); margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-crop" viewBox="0 0 24 24"><path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/></symbol>
+  <symbol id="i-brush" viewBox="0 0 24 24"><path d="M18.4 2.6a2 2 0 0 1 3 3L12 15l-3-3z"/><path d="M9 12c-2.5 0-4 1.6-4 4 0 1.5-1 2.5-3 3 4 2 9 1 9-3"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 7V5h16v2"/><path d="M12 5v14"/><path d="M9 19h6"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+  <symbol id="i-open" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8"/><path d="M7 21v-7h10v7"/></symbol>
+  <symbol id="i-cube" viewBox="0 0 24 24"><path d="M21 16V8l-9-5-9 5v8l9 5z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
+  <symbol id="i-flat" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17v4"/><path d="M17 19h4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M2 14h4"/><path d="M10 8h4"/><path d="M18 16h4"/></symbol>
+  <symbol id="i-split" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="16" rx="1.5"/><rect x="13" y="4" width="8" height="16" rx="1.5"/></symbol>
+  <symbol id="i-wipe" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M12 2v20"/></symbol>
+  <symbol id="i-arrows" viewBox="0 0 24 24"><path d="m9 7-5 5 5 5"/><path d="m15 7 5 5-5 5"/></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="6" r="1.2"/><circle cx="15" cy="6" r="1.2"/><circle cx="9" cy="12" r="1.2"/><circle cx="15" cy="12" r="1.2"/><circle cx="9" cy="18" r="1.2"/><circle cx="15" cy="18" r="1.2"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M6 10h6"/><path d="M6 14h4"/><rect x="15" y="9" width="3.5" height="3.5"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="18" width="24" height="8" rx="2" fill="#161618" stroke="#ffffff38"/><rect x="6" y="11" width="20" height="8" rx="2" fill="#7f8a86"/><rect x="8" y="4" width="16" height="8" rx="2" fill="#e9efe9" stroke="#0000001f"/></svg>
+      Layertone
+    </div>
+    <div class="sep"></div>
+    <input id="title" class="title" type="text" value="layertone" aria-label="Project name" title="Project name, used for the file names">
+    <div class="seg" role="group" aria-label="Mode">
+      <button type="button" data-mode="layers" aria-pressed="true" title="Filaments blend through thin layers (HueForge style)"><svg class="i"><use href="#i-sliders"/></svg>Layered</button>
+      <button type="button" data-mode="flat" aria-pressed="false" title="Each colour is its own filament, side by side"><svg class="i"><use href="#i-grid"/></svg>Flat Paint</button>
+      <button type="button" data-mode="card" aria-pressed="false" title="Business cards: 85 × 55 mm with raised text, a picture and a QR code"><svg class="i"><use href="#i-card"/></svg>Card</button>
+    </div>
+    <select id="mode" hidden>
+      <option value="layers">Layered</option>
+      <option value="flat">Flat Paint</option>
+      <option value="card">Card</option>
+    </select>
+    <div class="spacer"></div>
+    <div class="status" id="status"><span class="dot"></span><span id="statusT">No picture</span></div>
+    <div class="sep"></div>
+    <button class="btn ghost" id="openProj" title="Open a .layertone.json project"><svg class="i"><use href="#i-open"/></svg>Open</button>
+    <button class="btn ghost" id="saveProj" disabled title="Save the picture and every setting (Ctrl+S)"><svg class="i"><use href="#i-save"/></svg>Save</button>
+    <button class="btn primary" id="export" disabled title="Export a 3MF with filaments and swaps set (Ctrl+E)"><svg class="i"><use href="#i-download"/></svg>Export 3MF</button>
+    <input id="projFile" type="file" accept=".json,.layertone" hidden>
+  </header>
+
+  <div class="work">
+    <!-- ======== Left: settings ======== -->
+    <aside class="side left">
+      <section class="sec">
+        <div class="sec-h">Picture</div>
+        <div class="pic">
+          <div class="thumb" id="thumb"><svg class="i"><use href="#i-image"/></svg></div>
+          <div class="meta"><div class="name" id="picName">No picture yet</div><div class="sub" id="picSub">JPG or PNG, any size</div></div>
+          <button class="btn sm" id="pickBtn"><svg class="i"><use href="#i-upload"/></svg>Choose</button>
+        </div>
+        <input id="file" type="file" accept="image/*" hidden>
+      </section>
+
+      <section class="sec">
+        <div class="sec-h"><span id="stackLbl">Stack, bottom to top</span><a href="#" id="libOpen">Manage</a></div>
+        <div class="stack-cap"><span class="layersOnly">Bottom layer first · drag to reorder</span><span class="flatOnly">Drag to reorder</span></div>
+        <div id="stack"></div>
+        <button class="btn sm block notCard" id="suggestBtn" style="margin-top:10px"><svg class="i"><use href="#i-sparkle"/></svg>Which filament would help most?</button>
+        <button class="btn sm block notCard" id="suggestSetBtn" style="margin-top:6px"><svg class="i"><use href="#i-sparkle"/></svg>Suggest a full set for this picture</button>
+        <label class="hint notCard layersOnly" style="display:flex;align-items:center;gap:6px;margin-top:6px;white-space:nowrap"
+          title="More than 4 filaments means the print pauses so you can swap a spool">Up to
+          <select id="setMost" style="width:auto"><option>4</option><option>5</option><option>6</option></select> filaments · 5+ pauses to swap a spool</label>
+        <div id="suggestOut" class="hint"></div>
+      </section>
+
+      <section class="sec cardOnly">
+        <div class="sec-h">Business card</div>
+        <div class="field">
+          <div class="flabel"><label>Layout</label><output id="cardSvgV">Text box</output></div>
+          <div style="display:flex;gap:6px"><button class="btn sm" id="cardSvgBtn" type="button">Use an SVG design…</button>
+            <button class="btn sm" id="cardSvgClear" type="button" hidden>Back to the text box</button></div>
+          <input id="cardSvgFile" type="file" accept=".svg,image/svg+xml" hidden>
+          <p class="hint" id="cardSvgHint" hidden>85 × 55 mm. Each colour prints in the nearest Stack filament; the card colour goes first, then the smallest details, so text stands lowest. Thin lines are thickened to 0.45 mm.</p>
+        </div>
+        <div class="field cardText">
+          <div class="flabel"><label for="cardLines">Text, one line each</label></div>
+          <textarea id="cardLines" spellcheck="false">Your Name
+Maker &amp; 3D printing
++31 6 1234 5678
+you@example.com</textarea>
+          <p class="hint">The first line is the name. Text is kept at least 0.45 mm thick so a 0.4 mm nozzle can print it.</p>
+        </div>
+        <div class="field cardText">
+          <div class="flabel"><label for="cardQr">QR code link</label></div>
+          <input id="cardQr" type="text" placeholder="https://… (optional)" style="width:100%">
+        </div>
+        <div class="field cardgrid cardText">
+          <label for="cardFace">Card</label><select id="cardFace"></select>
+          <label for="cardInk">Text</label><select id="cardInk"></select>
+          <label for="cardAccent">Accent</label><select id="cardAccent"></select>
+          <label for="cardPicture">Picture</label><select id="cardPicture">
+            <option value="none">None</option><option value="photo">Layered photo</option><option value="logo">Logo in the accent</option></select>
+        </div>
+        <label class="hint cardText" style="display:flex;gap:6px;align-items:center"><input id="cardRule" type="checkbox" checked> Accent bar under the name</label>
+        <div class="field cardText">
+          <div class="flabel"><label for="cardBorder">Border</label><output id="cardBorderV"></output></div>
+          <input id="cardBorder" type="range" min="0" max="3" step="0.2" value="0">
+        </div>
+        <div class="field cardgrid">
+          <label for="cardFinish">Finish</label><select id="cardFinish">
+            <option value="inlay">Smooth: face down, colours flush</option>
+            <option value="engrave">Engraved: text cut in, one swap</option>
+            <option value="relief">Raised text</option></select>
+        </div>
+        <div class="field">
+          <div class="flabel"><label for="cardCopies">Cards on the plate</label><output id="cardCopiesV"></output></div>
+          <input id="cardCopies" type="range" min="1" max="8" step="1" value="8">
+        </div>
+      </section>
+
+      <section class="sec notCard">
+        <div class="sec-h">Size</div>
+        <div class="field">
+          <div class="flabel"><label for="width">Width</label><output id="widthV"></output></div>
+          <input id="width" type="range" min="30" max="250" step="1" value="100">
+        </div>
+        <div class="field layersOnly">
+          <div class="flabel"><label for="base">Base</label><output id="baseV"></output></div>
+          <input id="base" type="range" min="2" max="10" step="1" value="5">
+        </div>
+        <div class="field">
+          <div class="flabel"><label for="top" id="topLbl">Tallest point</label><output id="topV"></output></div>
+          <input id="top" type="range" min="8" max="30" step="1" value="17">
+        </div>
+        <div class="field layersOnly">
+          <div class="flabel"><label for="backing" title="Solid base filament under the picture so the panel isn't paper-thin. Printed in fast 0.2 mm layers; the colours don't change.">Backing</label><output id="backingV"></output></div>
+          <input id="backing" type="range" min="0" max="3" step="0.2" value="1">
+        </div>
+        <div class="field layersOnly">
+          <div class="flabel"><label for="frame" title="A raised border around the picture, as tall as the tallest point. Makes the panel stiffer.">Frame</label><output id="frameV"></output></div>
+          <input id="frame" type="range" min="0" max="20" step="1" value="0">
+        </div>
+        <div class="field cardgrid layersOnly" title="The frame's shape. Light parts stand tall, dark parts sit low; no extra filament swaps.">
+          <label for="frameStyle">Frame style</label><select id="frameStyle">
+            <option value="flat">Flat</option><option value="dark">Dark recess</option><option value="bevel">Bevel</option>
+            <option value="cove">Cove</option><option value="steps">Stepped moulding</option><option value="mat">Gallery mat</option>
+            <option value="double">Double line</option><option value="lip">Inner lip</option><option value="beads">Beaded</option>
+            <option value="rounded">Rounded corners</option>
+          </select>
+        </div>
+        <div class="field cardgrid layersOnly" title="Split a big picture into tiles that each fit the A1 bed. Every tile uses the same swaps, so the colours match across the seams. Exports a zip: one 3MF per tile, the joining parts and a layout sheet.">
+          <label for="wall">Wall tiles</label><select id="wall">
+            <option value="off">Off</option><option value="auto">Auto</option><option value="2x1">2 × 1</option><option value="1x2">1 × 2</option>
+            <option value="2x2">2 × 2</option><option value="3x2">3 × 2</option><option value="2x3">2 × 3</option>
+            <option value="3x3">3 × 3</option><option value="4x3">4 × 3</option><option value="4x4">4 × 4</option></select>
+          <label for="join" class="wallOn" title="How the tiles hold together, cut into the back so the front has no seam lines">Join</label><select id="join" class="wallOn">
+            <option value="magnets">Magnets (5 × 2 mm) + links</option><option value="keys">Dovetail keys</option>
+            <option value="plates">Back clips (peg plates)</option><option value="none">None, glue it</option></select>
+        </div>
+        <div class="field cardgrid" title="A desk stand sized to this print, exported as its own 3MF next to it (one colour, 0.20 mm layers)">
+          <label for="stand">Add a stand</label><select id="stand">
+            <option value="none">None</option><option value="plain">Plain wedge</option><option value="contour">Contour hill</option></select>
+          <label for="standFil" class="standOn">Stand colour</label><select id="standFil" class="standOn"></select>
+        </div>
+      </section>
+
+      <section class="sec notCard">
+        <div class="sec-h">Picture tuning</div>
+        <div class="field">
+          <div class="flabel"><label for="brightness">Brightness</label><output id="brightnessV"></output></div>
+          <input id="brightness" type="range" min="-1" max="1" step="0.05" value="0">
+        </div>
+        <div class="field">
+          <div class="flabel"><label for="contrast">Contrast</label><output id="contrastV"></output></div>
+          <input id="contrast" type="range" min="0.5" max="2" step="0.05" value="1">
+        </div>
+        <div class="field">
+          <div class="flabel"><label for="detail">Detail boost</label><output id="detailV"></output></div>
+          <input id="detail" type="range" min="0" max="1" step="0.1" value="0.5">
+        </div>
+        <div class="field layersOnly">
+          <div class="flabel"><label for="dither">Dithering</label><output id="ditherV"></output></div>
+          <input id="dither" type="range" min="0" max="0.8" step="0.2" value="0.4">
+        </div>
+      </section>
+
+      <details class="sec notCard" id="cleanup">
+        <summary>Clean up the picture</summary>
+        <div class="field">
+          <div class="flabel"><label for="smooth">Smooth grain</label><output id="smoothV"></output></div>
+          <input id="smooth" type="range" min="0" max="1" step="0.2" value="0">
+        </div>
+        <div class="field">
+          <div class="flabel"><label for="colours">Reduce colours</label><output id="coloursV"></output></div>
+          <input id="colours" type="range" min="0" max="16" step="1" value="0">
+        </div>
+        <div class="field">
+          <div class="flabel"><label for="speck">Remove specks</label><output id="speckV"></output></div>
+          <input id="speck" type="range" min="0" max="1.4" step="0.2" value="0.6">
+        </div>
+      </details>
+
+      <details class="sec layersOnly">
+        <summary>Experimental</summary>
+        <div class="field">
+          <div class="flabel"><label for="thin">Thin shadow layers</label><output id="thinV"></output></div>
+          <input id="thin" type="range" min="0" max="8" step="1" value="0">
+          <p class="hint">Prints the first light layers at 0.04 mm for smoother shadows. Set in the 3MF for you.</p>
+        </div>
+      </details>
+    </aside>
+
+    <!-- ======== Centre: stage ======== -->
+    <main class="stage" id="stage">
+      <div class="toolbar">
+        <div class="grp tools">
+          <div class="seg icons" role="group" aria-label="Tool">
+            <button type="button" data-tool="crop" aria-pressed="true" title="Crop: drag a box on the picture (C)"><svg class="i"><use href="#i-crop"/></svg><span class="lbl">Crop</span></button>
+            <button type="button" data-tool="paint" aria-pressed="false" title="Paint: brush over the picture (B)"><svg class="i"><use href="#i-brush"/></svg><span class="lbl">Paint</span></button>
+            <button type="button" data-tool="text" aria-pressed="false" title="Text: click where it goes (T)"><svg class="i"><use href="#i-text"/></svg><span class="lbl">Text</span></button>
+          </div>
+          <select id="tool" hidden><option value="crop">Crop</option><option value="paint">Paint</option><option value="text">Text</option></select>
+          <span class="vsep" id="inkSep" style="display:none"></span>
+          <input id="ink" type="color" value="#ffffff" title="Paint and text colour" style="display:none">
+          <input id="inkSize" type="range" min="1" max="20" value="4" title="Brush and text size" aria-label="Brush and text size" style="display:none">
+          <input id="textIn" type="text" placeholder="Text to place" style="display:none">
+          <span class="vsep"></span>
+          <button class="btn ghost icon sm" id="undo" title="Undo (Ctrl+Z)"><svg class="i"><use href="#i-undo"/></svg></button>
+          <button class="btn ghost icon sm" id="resetEdits" title="Reset all edits"><svg class="i"><use href="#i-reset"/></svg></button>
+        </div>
+        <div class="spacer"></div>
+        <div class="grp zoom">
+          <button class="btn ghost icon sm" id="zoomOut" title="Zoom out (−)">−</button>
+          <button class="btn ghost sm zoomv" id="zoomV" title="Fit to window (0)">Fit</button>
+          <button class="btn ghost icon sm" id="zoomIn" title="Zoom in (+)">+</button>
+        </div>
+        <div class="grp">
+          <div class="seg" role="group" aria-label="View">
+            <button type="button" data-view="2d" aria-pressed="true" title="Picture and print side by side"><svg class="i"><use href="#i-split"/></svg><span class="lbl">Side by side</span></button>
+            <button type="button" data-view="wipe" aria-pressed="false" class="notCard" title="Drag a line across to compare (W)"><svg class="i"><use href="#i-wipe"/></svg><span class="lbl">Compare</span></button>
+            <button type="button" data-view="3d" aria-pressed="false" class="layersOnly" title="Turn the relief in 3D (D)"><svg class="i"><use href="#i-cube"/></svg><span class="lbl">3D</span></button>
+          </div>
+          <input type="checkbox" id="view3d" hidden>
+        </div>
+      </div>
+
+      <div class="views">
+        <div class="pane a">
+          <span class="tag" id="origCap">Picture</span>
+          <div class="fit edit"><canvas id="orig"></canvas><div id="cropBox"></div></div>
+        </div>
+        <div class="pane">
+          <span class="tag" id="wipeL">Picture</span>
+          <span class="tag" id="prevCap">How the print should look</span>
+          <div class="fit"><canvas id="beforeCv"></canvas><img id="prev" alt="Preview of the print"><canvas id="layerCv"></canvas></div>
+          <div id="wipe"><div class="knob" title="Drag to compare"><svg class="i"><use href="#i-arrows"/></svg></div></div>
+          <div id="three"></div>
+        </div>
+      </div>
+
+      <div class="timeline layersOnly">
+        <div class="tl-head"><span class="t">Layers <span id="cutV"></span></span></div>
+        <div class="tl-track"><div id="bands"></div><input id="cut" type="range" min="1" max="17" step="1" value="17" aria-label="Stop after layer"></div>
+        <div class="tl-legend"><span>First layer</span><span>Drag to see the print stop at any layer · green lines mark filament swaps</span><span>Top</span></div>
+      </div>
+
+      <div id="drop">
+        <div class="drop-card" id="dropCard" role="button" tabindex="0">
+          <div class="big"><svg class="i" style="width:22px;height:22px"><use href="#i-upload"/></svg></div>
+          <h2>Drop a picture to start</h2>
+          <p>Or click to choose one. Portraits and high-contrast photos work best.</p>
+          <span class="btn primary kbd"><svg class="i"><use href="#i-image"/></svg>Choose picture</span>
+        </div>
+        <div class="how"><span><b>1</b>Drop a photo</span><span><b>2</b>Pick your filaments</span><span><b>3</b>Export to Bambu Studio</span></div>
+      </div>
+    </main>
+
+    <!-- ======== Right: print plan ======== -->
+    <aside class="side right">
+      <section class="sec">
+        <div class="sec-h">Print plan</div>
+        <div id="info"><div class="empty-plan">Choose a picture to see the size, the colour match and where to swap filament.</div></div>
+      </section>
+      <section class="sec layersOnly">
+        <div class="sec-h">Calibrate</div>
+        <p class="hint" style="margin:0 0 10px">Print every colour this Stack can make, hold it next to the chart, and see which TD values are off.</p>
+        <button class="btn sm block" id="boardBtn"><svg class="i"><use href="#i-grid"/></svg>Calibration board for this Stack</button>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<dialog id="libBox">
+  <div class="dlg-h"><div><h3>Filaments</h3><p>TD is how far light gets through, in mm. Values are guesses until you print a swatch.</p></div>
+    <button class="btn ghost icon" id="libClose" title="Close">✕</button></div>
+  <div class="dlg-b">
+    <table class="lib"><thead><tr><th>Name</th><th>Colour</th><th title="Transmission distance, mm">TD</th><th title="AMS slot">Slot</th><th></th></tr></thead>
+      <tbody id="libRows"></tbody></table>
+  </div>
+  <div class="dlg-f">
+    <button class="btn sm" id="libAdd">Add filament</button>
+    <button class="btn ghost sm" id="libImport">Import</button>
+    <button class="btn ghost sm" id="libExport">Export</button>
+    <span class="hint" id="libMsg" style="margin:0 0 0 6px"></span>
+    <div class="spacer"></div>
+    <button class="btn primary sm" id="libSave">Save</button>
+  </div>
+  <input id="libFile" type="file" accept=".json" hidden>
+</dialog>
+
+<div id="picker" role="listbox" hidden></div>
+<div id="exportMsg" role="status" aria-live="polite"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const FIRST = 0.2, LAYER = 0.08;
+const mm = n => (FIRST + (n - 1) * LAYER).toFixed(2) + " mm";
+let lib = {}, imageId = null, timer = null, seq = 0, autoTitle = "layertone";
+let manualSwaps = null;            // null = the app plans the swaps
+let last = null, lastPrint = null, cutAtTop = true;  // last preview; the layer slider follows the top until moved
+
+async function init() {
+  lib = await (await fetch("/api/filaments")).json();
+  fillStack(["black", "jade_white", "", ""]);
+  for (const id of ["width", "base", "top", "backing", "frame", "brightness", "contrast", "detail", "dither", "thin", "smooth", "colours", "speck",
+                    "cardLines", "cardQr", "cardBorder", "cardCopies"]) $(id).oninput = () => { labels(); schedule(); };
+  for (const id of CARD_SELECTS.concat(["cardPicture", "cardRule", "cardFinish"])) $(id).onchange = () => { labels(); schedule(); };
+  $("stand").onchange = $("standFil").onchange = $("wall").onchange = $("join").onchange = $("frameStyle").onchange = () => { labels(); schedule(); };
+  fillStandFil(); labels(); libTable();
+}
+function fillStandFil() {
+  const keep = $("standFil").value || "jade_white";
+  $("standFil").innerHTML = Object.entries(lib).filter(([, f]) => !f.trial)
+    .map(([k, f]) => `<option value="${k}" ${k === keep ? "selected" : ""}>${esc(f.name)}</option>`).join("");
+}
+function stackKeys() { return [...$("stack").querySelectorAll("select")].map(s => s.value); }
+// Layered Stacks go up to 8: past the 4 AMS slots the print pauses for a spool change.
+// Flat Paint and Cards print every colour in the same layers, so they stay at the 4 slots.
+function maxRows() { return $("mode").value === "layers" ? 8 : 4; }
+// Filled rows first, then empty ones: at least 4 rows, and one spare row while there is room.
+function stackRows(keys) {
+  const full = keys.filter(Boolean).slice(0, maxRows());
+  return full.concat(Array(Math.max(4, Math.min(maxRows(), full.length + 1)) - full.length).fill(""));
+}
+// Each Stack row: a drag handle, and a button that opens the filament picker.
+// A hidden <select> per row still holds the value, so everything that reads the Stack is unchanged.
+function fillStack(keys) {
+  keys = stackRows(keys);
+  $("stack").innerHTML = "";
+  keys.forEach((d, i) => {
+    const row = document.createElement("div"); row.className = "row"; row.dataset.i = i;
+    const grip = document.createElement("button"); grip.type = "button"; grip.className = "grip";
+    grip.title = "Drag to reorder (or focus and press ↑ ↓)"; grip.setAttribute("aria-label", `Move filament ${i + 1}`);
+    grip.innerHTML = `<span class="n">${i + 1}</span><svg class="i"><use href="#i-grip"/></svg>`;
+    const sel = document.createElement("select"); sel.hidden = true; sel.dataset.i = i;
+    sel.innerHTML = (i ? '<option value="">None</option>' : "") +
+      Object.entries(lib).map(([k, f]) => `<option value="${k}">${esc(f.name)}</option>`).join("");
+    sel.value = d in lib ? d : (i ? "" : Object.keys(lib)[0]);
+    const pick = document.createElement("button"); pick.type = "button"; pick.className = "pick";
+    pick.setAttribute("aria-haspopup", "listbox"); pick.setAttribute("aria-expanded", "false");
+    pick.onclick = () => openPicker(pick, sel, i);
+    sel.onchange = () => {
+      manualSwaps = null;
+      const k = stackKeys();
+      if (stackRows(k).length !== k.length || (!sel.value && k.slice(i + 1).some(Boolean))) fillStack(k);  // close a gap, add or drop the spare row
+      else paint(sel, pick);
+      schedule();
+    };
+    row.append(grip, pick, sel); $("stack").append(row); paint(sel, pick);
+    grip.onpointerdown = e => dragRow(e, row);
+    grip.onkeydown = e => { if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); moveRow(i, i + (e.key === "ArrowUp" ? -1 : 1), true); } };
+  });
+}
+// Reorder: empty rows always sink to the end, so the bottom filament is never "None".
+function moveRow(from, to, focus) {
+  const keys = stackKeys();
+  if (to < 0 || to >= keys.length || from === to) return;
+  const [k] = keys.splice(from, 1); keys.splice(to, 0, k);
+  const full = keys.filter(Boolean), order = full.concat(keys.filter(x => !x));
+  if (order.join() === stackKeys().join()) return;
+  manualSwaps = null; fillStack(order); schedule();
+  if (focus) $("stack").children[Math.min(to, full.length - 1)]?.querySelector(".grip").focus();
+}
+function dragRow(e, row) {
+  e.preventDefault();
+  const rows = [...$("stack").children], from = +row.dataset.i, grip = e.currentTarget;
+  let to = from;
+  grip.setPointerCapture(e.pointerId); row.classList.add("dragging");
+  grip.onpointermove = m => {
+    // Insert before the first row whose middle is below the pointer.
+    const ins = rows.filter(r => { const b = r.getBoundingClientRect(); return m.clientY > b.top + b.height / 2; }).length;
+    rows.forEach(r => r.classList.remove("drop-before", "drop-after"));
+    to = ins > from ? ins - 1 : ins;
+    if (to !== from) ins < rows.length ? rows[ins].classList.add("drop-before") : rows[rows.length - 1].classList.add("drop-after");
+  };
+  grip.onpointerup = () => {
+    grip.onpointermove = grip.onpointerup = null;
+    rows.forEach(r => r.classList.remove("drop-before", "drop-after", "dragging"));
+    moveRow(from, to);
+  };
+}
+
+// ---- Filament picker ----
+let pickFor = null;
+function openPicker(btn, sel, i) {
+  const box = $("picker");
+  if (pickFor && pickFor.btn === btn) return closePicker();
+  closePicker(); pickFor = { btn, sel };
+  const used = new Set(stackKeys().filter((k, j) => k && j !== i));
+  const opt = (k, f) => `<button type="button" class="opt ${used.has(k) ? "used" : ""}" role="option" data-k="${esc(k)}"
+      aria-selected="${sel.value === k}">${f ? `<span class="sw on" style="background:${f.hex}"></span>
+      <span><div>${esc(f.name)}</div><div class="mt">${used.has(k) ? "In the Stack already; it can come back higher up" : tdWord(f.td)}</div></span>
+      <span class="tags"><span class="tag2" title="Transmission distance">TD ${f.td}</span><span class="tag2" title="AMS slot">${f.trial ? "To buy" : "Slot " + f.slot}</span></span>`
+      : `<span class="sw"></span><span>None</span><span></span>`}</button>`;
+  box.innerHTML = Object.entries(lib).map(([k, f]) => opt(k, f)).join("") + (i ? opt("", null) : "") +
+    `<hr><button type="button" class="opt foot" data-manage="1">Manage filaments…</button>`;
+  const r = btn.getBoundingClientRect();
+  box.hidden = false;
+  const top = r.bottom + 6 + box.offsetHeight > innerHeight ? Math.max(8, r.top - 6 - box.offsetHeight) : r.bottom + 6;
+  Object.assign(box.style, { left: r.left + "px", top: top + "px", width: Math.max(360, r.width) + "px" });
+  btn.setAttribute("aria-expanded", "true");
+  (box.querySelector('[aria-selected="true"]') || box.querySelector(".opt")).focus();
+}
+function closePicker() {
+  if (!pickFor) return;
+  pickFor.btn.setAttribute("aria-expanded", "false"); $("picker").hidden = true;
+  const b = pickFor.btn; pickFor = null; return b;
+}
+// Lower TD lets less light through: a dark base hides what is under it, a high-TD top layer blends.
+function tdWord(td) { return td < 1 ? "Opaque, hides what is below" : td < 3 ? "Some light through" : "Lets a lot of light through"; }
+$("picker").onclick = e => {
+  const o = e.target.closest(".opt"); if (!o) return;
+  if (o.dataset.manage) { closePicker(); $("libOpen").click(); return; }
+  const { sel } = pickFor; closePicker()?.focus();
+  if (sel.value !== o.dataset.k) { sel.value = o.dataset.k; sel.onchange(); }
+};
+$("picker").onkeydown = e => {
+  const opts = [...$("picker").querySelectorAll(".opt")], i = opts.indexOf(document.activeElement);
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); opts[(i + (e.key === "ArrowDown" ? 1 : opts.length - 1)) % opts.length].focus(); }
+  if (e.key === "Escape") { e.preventDefault(); closePicker()?.focus(); }
+  if (e.key === "Tab") closePicker();
+};
+document.addEventListener("pointerdown", e => { if (pickFor && !e.target.closest("#picker, .pick")) closePicker(); });
+window.addEventListener("resize", closePicker);
+document.querySelector(".side.left").addEventListener("scroll", closePicker);
+
+// ---- Filament list editor ----
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+function libTable(entries = lib) {
+  $("libRows").innerHTML = Object.entries(entries).filter(([, f]) => !f.trial).map(([k, f]) => `<tr data-key="${esc(k)}">
+    <td><input class="fName" type="text" value="${esc(f.name)}"></td>
+    <td><input class="fHex" type="color" value="${f.hex.toLowerCase()}"></td>
+    <td><input class="fTd" type="number" min="0.05" max="50" step="0.05" value="${f.td}" style="width:5.5em"></td>
+    <td><select class="fSlot">${[1, 2, 3, 4].map(n => `<option ${n == f.slot ? "selected" : ""}>${n}</option>`).join("")}</select></td>
+    <td><a href="#" class="fDel" title="Remove">×</a></td></tr>`).join("");
+}
+function libFromTable() {
+  const out = {};
+  for (const tr of $("libRows").children) {
+    const name = tr.querySelector(".fName").value.trim();
+    const key = tr.dataset.key.startsWith("new_") ? name.toLowerCase().replace(/[^a-z0-9]+/g, "_") : tr.dataset.key;
+    out[key] = { name, hex: tr.querySelector(".fHex").value, td: +tr.querySelector(".fTd").value, slot: +tr.querySelector(".fSlot").value };
+  }
+  return out;
+}
+async function saveLib(entries) {
+  const r = await fetch("/api/filaments", { method: "POST", body: JSON.stringify(entries) });
+  const d = await r.json();
+  if (!r.ok) { $("libMsg").textContent = d.error; return; }
+  for (const k in d) delete trial[k];               // now yours
+  const keep = stackKeys(); lib = { ...d, ...trial }; fillStack(keep); fillStandFil(); libTable(); schedule();
+  $("libMsg").textContent = "Saved.";
+}
+document.addEventListener("click", e => {
+  if (e.target.classList.contains("fDel")) { e.preventDefault(); e.target.closest("tr").remove(); }
+});
+function paint(sel, pick) {
+  const f = lib[sel.value];
+  pick.classList.toggle("none", !f);
+  pick.innerHTML = f ? `<span class="sw on" style="background:${f.hex}"></span><span class="tx"><div class="nm">${esc(f.name)}</div>
+      <div class="mt">TD ${f.td} mm · ${f.trial ? "to buy, slot set on export" : "AMS slot " + f.slot}</div></span>`
+    : `<span class="sw"></span><span class="tx"><div class="nm">None</div><div class="mt">Add a filament</div></span>`;
+}
+function fill(r) { r.style.setProperty("--p", (r.value - r.min) / (r.max - r.min) * 100 + "%"); }
+// Card mode can take an SVG design instead of the text box (kept as text, sent with every update).
+let cardSvg = "";
+function setCardSvg(text, name) {
+  cardSvg = text; document.body.classList.toggle("cardsvg", !!text);
+  $("cardSvgV").textContent = text ? name : "Text box";
+  $("cardSvgClear").hidden = $("cardSvgHint").hidden = !text;
+  schedule();
+}
+$("cardSvgBtn").onclick = () => $("cardSvgFile").click();
+$("cardSvgClear").onclick = () => setCardSvg("", "");
+$("cardSvgFile").onchange = async e => {
+  const f = e.target.files[0]; if (f) setCardSvg(await f.text(), f.name);
+  e.target.value = "";
+};
+// Card mode: which Stack filament is the card face, the text and the accent (by Stack position).
+const CARD_SELECTS = ["cardFace", "cardInk", "cardAccent"];
+function cardSelects() {
+  const keys = stackKeys().filter(Boolean), n = keys.length;
+  const def = { cardFace: 0, cardInk: n - 1, cardAccent: Math.min(1, n - 1) };
+  for (const id of CARD_SELECTS) {
+    const el = $(id), was = el.dataset.keys === keys.join() ? el.value : String(def[id]);
+    el.innerHTML = keys.map((k, i) => `<option value="${i}">${esc(lib[k]?.name || k)}</option>`).join("");
+    el.value = +was < n ? was : String(def[id]); el.dataset.keys = keys.join();
+  }
+}
+function labels() {
+  const wall = $("wall").value !== "off";
+  for (const e of document.querySelectorAll(".wallOn")) e.style.display = wall ? "" : "none";
+  $("width").max = wall ? 900 : 250;                         // a wall is bigger than one bed
+  for (const e of document.querySelectorAll(".standOn")) e.style.display = $("stand").value === "none" || wall ? "none" : "";
+  const flat = $("mode").value === "flat", card = $("mode").value === "card";
+  document.body.classList.toggle("flat", flat);
+  document.body.classList.toggle("card", card);
+  if (card) cardSelects();
+  $("cardBorderV").textContent = +$("cardBorder").value ? `${(+$("cardBorder").value).toFixed(1)} mm` : "Off";
+  $("cardCopiesV").textContent = $("cardCopies").value;
+  if (card) $("export").disabled = false; else $("export").disabled = !imageId;
+  for (const b of document.querySelectorAll("[data-mode]")) b.setAttribute("aria-pressed", b.dataset.mode === $("mode").value);
+  $("stackLbl").textContent = flat ? "Colours, one filament each" : "Stack, bottom to top";
+  const base = +$("base").value;
+  $("top").min = base + 2;
+  if (+$("top").value < base + 2) $("top").value = base + 2;
+  $("widthV").textContent = $("width").value + " mm";
+  $("baseV").textContent = `${base} layers · ${mm(base)}`;
+  $("topV").textContent = `${$("top").value} layers · ${mm(+$("top").value)}`;
+  $("topLbl").textContent = flat ? "Height" : "Tallest point";
+  $("backingV").textContent = +$("backing").value ? `${(+$("backing").value).toFixed(1)} mm · total ${(+$("backing").value + FIRST + (+$("top").value - 1) * LAYER).toFixed(2)} mm` : "Off";
+  $("frameV").textContent = +$("frame").value ? `${$("frame").value} mm wide` : "Off";
+  const b = +$("brightness").value;
+  $("brightnessV").textContent = b ? (b > 0 ? "+" : "") + b.toFixed(2) : "0";
+  $("contrastV").textContent = (+$("contrast").value).toFixed(2) + "×";
+  $("detailV").textContent = +$("detail").value ? (+$("detail").value).toFixed(1) : "Off";
+  $("smoothV").textContent = +$("smooth").value ? `${(+$("smooth").value).toFixed(1)} mm` : "Off";
+  $("coloursV").textContent = +$("colours").value ? `${$("colours").value} colours` : "Off";
+  $("speckV").textContent = +$("speck").value ? `under ${(+$("speck").value).toFixed(1)} mm` : "Off";
+  $("ditherV").textContent = +$("dither").value ? `${(+$("dither").value).toFixed(1)} mm dots` : "Off";
+  $("thinV").textContent = +$("thin").value ? `${$("thin").value} × 0.04 mm` : "Off";
+  document.querySelectorAll("input[type=range]").forEach(fill);
+}
+function settings() {
+  const stack = [...$("stack").querySelectorAll("select")].map(s => s.value).filter(Boolean);
+  const flat = $("mode").value === "flat";
+  return { image: imageId, stack, crop, flat, flat_layers: +$("top").value, width: +$("width").value, base_layers: +$("base").value,
+           max_layers: +$("top").value, brightness: +$("brightness").value, contrast: +$("contrast").value,
+           swaps: manualSwaps, detail: +$("detail").value, dither: +$("dither").value,
+           smooth: +$("smooth").value, colours: +$("colours").value, speck: +$("speck").value, thin: +$("thin").value,
+           backing: +$("backing").value, frame: +$("frame").value, frame_style: $("frameStyle").value, title: $("title").value,
+           wall: $("mode").value === "layers" ? $("wall").value : "off", join: $("join").value,
+           stand: $("mode").value === "card" || $("wall").value !== "off" ? "none" : $("stand").value, stand_filament: $("standFil").value,
+           card: $("mode").value === "card", card_lines: $("cardLines").value, card_qr: $("cardQr").value,
+           card_face: +$("cardFace").value, card_ink: +$("cardInk").value, card_accent: +$("cardAccent").value,
+           card_picture: imageId ? $("cardPicture").value : "none", card_rule: $("cardRule").checked ? 1 : 0,
+           card_border: +$("cardBorder").value, card_copies: +$("cardCopies").value, card_svg: cardSvg, card_finish: $("cardFinish").value };
+}
+function schedule() { clearTimeout(timer); if (imageId || $("mode").value === "card") timer = setTimeout(update, 200); }
+function status(text, kind = "live") { $("statusT").textContent = text; $("status").className = "status " + kind; }
+
+// Colour error: under ~5 is hard to tell apart; past ~15 it clearly shows.
+function quality(e) {
+  if (e < 5) return ["Excellent", "var(--good)"];
+  if (e < 10) return ["Good", "var(--good)"];
+  if (e < 15) return ["Fair", "var(--warn)"];
+  return ["Rough", "var(--bad)"];
+}
+const chip = hex => `<span class="chip" style="background:${hex}"></span>`;
+
+async function update() {
+  const my = ++seq;
+  if ($("mode").value === "card") return updateCard(my);
+  $("prev").classList.add("busy"); status("Updating preview…", "busy");
+  const r = await fetch("/api/preview", { method: "POST", body: JSON.stringify(settings()) });
+  const d = await r.json();
+  if (my !== seq) return;                       // a newer request is on its way
+  $("prev").classList.remove("busy");
+  if (d.error) { $("info").innerHTML = `<div class="err">${esc(d.error)}</div>`; status("Preview failed", ""); return; }
+  status("Preview up to date");
+  lastPrint = d;
+  $("prev").src = d.preview;
+  if (d.flat) {
+    last = null; $("prev").style.display = ""; $("layerCv").style.display = $("three").style.display = "none";
+    $("prevCap").textContent = "How the print should look";
+  } else {
+  last = { ...d, h: Uint8Array.from(atob(d.heights), c => c.charCodeAt(0)) };
+  $("cut").min = 1; $("cut").max = d.layer_hex.length;
+  if (cutAtTop || +$("cut").value > d.layer_hex.length) $("cut").value = d.layer_hex.length;
+  showLayers();
+  }
+  const [q, qc] = quality(d.colour_error), pct = Math.max(4, 100 - d.colour_error * 4);
+  const tiles = `<div class="stats">
+      <div class="stat"><div class="k">Size</div><div class="v">${d.size_mm[0]}<small>×</small>${d.size_mm[1]}<small>mm</small></div></div>
+      <div class="stat"><div class="k">Height</div><div class="v">${d.top_mm}<small>mm</small></div></div>
+      <div class="stat wide"><div class="k" style="display:flex;justify-content:space-between">Colour match
+        <span class="q" style="color:${qc}">${q}</span></div>
+        <div class="v">${d.colour_error}<small>error</small></div>
+        <div class="meter"><i style="width:${pct}%;background:${qc}"></i></div>
+        <div class="hint">Lower is better; under 5 is hard to tell apart.</div></div>
+      ${d.wall ? `<div class="stat wide"><div class="k">Wall</div><div class="v">${d.wall.cols}<small>×</small>${d.wall.rows}<small>tiles of</small>${Math.round(d.wall.tile_mm[0])}<small>×</small>${Math.round(d.wall.tile_mm[1])}<small>mm</small></div>
+        <div class="hint" ${d.wall.warning ? 'style="color:#e5484d"' : ""}>${d.wall.warning ? esc(d.wall.warning) : "Every tile uses the same swaps, so the colours match across the seams. Tiles are labelled A1 (top left), A2 … on the back."}
+        ${d.wall.join !== "none" ? `${d.wall.joins} joining parts (+2 spares) in their own 3MF. Backing is ${d.wall.backing.toFixed(1)} mm so the pockets never reach the colours.` : "Flat backs: glue onto a board or into a frame."}</div></div>` : ""}
+      ${d.stand_mm ? `<div class="stat wide"><div class="k">Stand, separate 3MF</div><div class="v">${d.stand_mm.map(Math.round).join("<small>×</small>")}<small>mm</small></div>
+        <div class="hint">Slot ${(d.top_mm + 0.3).toFixed(2)} mm wide, in ${esc(lib[$("standFil").value]?.name || "")}.</div></div>` : ""}
+    </div>`;
+  if (d.flat) {
+    $("info").innerHTML = tiles + `<div class="sec-h" style="margin:18px 0 10px">One part per colour</div>
+      <ul class="steps">${d.parts.map(f => `<li>${chip(f.hex)}<div><div class="what">${esc(f.name)}</div>
+      <div class="when">AMS slot ${f.slot}</div></div></li>`).join("")}</ul>
+      <div class="note">Bambu Studio swaps filament inside every layer, so expect more purge waste than Layered mode.</div>`;
+    return;
+  }
+  // with spool changes the AMS slots move around, so the steps name filaments, not slots
+  const moving = d.spool_changes.length > 0, slotTxt = n => moving ? "" : ` · slot ${n}`;
+  const pauses = d.spool_changes.map(c => [c.z, `<li class="pause">${chip(c.hex)}<div>
+       <div class="what">Pause: swap a spool</div>
+       <div class="when">Z ${c.z.toFixed(2)} mm · take out ${esc(c.out)}, put ${esc(c.into)} in its slot, then resume</div></div></li>`]);
+  const swapLis = d.swaps.map((s, i) => [s.z, `<li>${chip(Object.values(lib).find(f => f.name === s.name)?.hex || "#888")}<div>
+       <div class="what">Swap to ${esc(s.name)}</div>
+       <div class="when">Z ${s.z.toFixed(2)} mm · layer <input class="swapIn" data-i="${i}" type="number" min="${+$("base").value}"
+         max="${+$("top").value - 1}" value="${s.layer}" aria-label="Swap layer">${slotTxt(s.slot)}</div></div></li>`]);
+  const steps = `<li>${chip(lib[stackKeys()[0]]?.hex || "#000")}<div><div class="what">Start in ${esc(d.start.name)}</div>
+       <div class="when">${moving ? "Load the AMS lite with " + d.load.map(esc).join(", ") : "AMS slot " + d.start.slot} · from the first layer</div></div></li>` +
+     swapLis.concat(pauses).sort((a, b) => a[0] - b[0]).map(x => x[1]).join("");
+  $("info").innerHTML = tiles + `<div class="sec-h" style="margin:18px 0 10px">Filament changes
+       ${manualSwaps ? '<a href="#" id="autoSwaps">Let the app plan them</a>' : ""}</div>
+     <ol class="steps">${steps}</ol>` +
+     (d.swaps.length ? `<p class="hint" style="margin:-4px 0 12px">${manualSwaps ? "Swaps set by hand." : "Planned by the app. Change a layer number to set it yourself."}</p>` : "") +
+     (moving ? `<div class="note">${d.spool_changes.length} spool change${d.spool_changes.length > 1 ? "s" : ""}: the 3MF pauses the printer one layer before the filament is needed. Swap the spool in the slot that held the old filament (it isn't the one printing), then resume.</div>` : "") +
+     (d.backing_range ? `<div class="note">Backing: <b>${d.backing_range[0].toFixed(2)}–${d.backing_range[1].toFixed(2)} mm</b> prints in 0.2 mm layers of the base filament, already set in the 3MF.</div>` : "") +
+     (d.thin_range ? `<div class="note">Layers <b>${d.thin_range[0].toFixed(2)}–${d.thin_range[1].toFixed(2)} mm</b> are 0.04 mm thick, already set in the 3MF.</div>` : "");
+}
+
+document.addEventListener("change", e => {
+  if (!e.target.classList.contains("swapIn")) return;
+  manualSwaps = [...document.querySelectorAll(".swapIn")].map(x => +x.value);
+  schedule();
+});
+document.addEventListener("click", e => {
+  if (e.target.id !== "autoSwaps") return;
+  e.preventDefault(); manualSwaps = null; schedule();
+});
+
+async function updateCard(my) {
+  $("prev").classList.add("busy"); status("Updating card…", "busy");
+  const d = await (await fetch("/api/card", { method: "POST", body: JSON.stringify(settings()) })).json();
+  if (my !== seq) return;
+  $("prev").classList.remove("busy");
+  if (d.error) { $("info").innerHTML = `<div class="err">${esc(d.error)}</div>`; status("Card doesn't fit", ""); return; }
+  status("Card up to date");
+  last = null; $("prev").src = d.preview; $("prev").style.display = "";
+  $("layerCv").style.display = $("three").style.display = "none";
+  $("prevCap").textContent = "How the card should look";
+  const hex = name => Object.values(lib).find(f => f.name === name)?.hex || "#888";
+  if (d.inlay) {
+    $("info").innerHTML = `<div class="stats">
+      <div class="stat"><div class="k">Card</div><div class="v">85<small>×</small>55<small>mm</small></div></div>
+      <div class="stat"><div class="k">Thickness</div><div class="v">${d.top_mm}<small>mm</small></div></div>
+      <div class="stat wide"><div class="k">On the plate</div><div class="v">${d.copies}<small>${d.copies > 1 ? "cards" : "card"}</small></div></div>
+    </div>
+    ${d.warnings.map(w => `<p class="warn">${esc(w)}</p>`).join("")}
+    <div class="sec-h" style="margin:18px 0 10px">Filaments</div>
+    <ol class="steps"><li>${chip(d.body.hex)}<div><div class="what">${esc(d.body.name)}</div>
+      <div class="when">AMS slot ${d.body.slot} · card body</div></div></li>
+    ${d.inlays.map(f => `<li>${chip(f.hex)}<div><div class="what">${esc(f.name)}</div>
+      <div class="when">AMS slot ${f.slot} · inlaid in the first ${d.depth_mm.toFixed(2)} mm</div></div></li>`).join("")}</ol>
+    <div class="note">Printed face down: the front is the side on the plate, so it is smooth and takes the plate's texture. The design is mirrored in the file on purpose. Bambu Studio changes filament once per layer in the first ${d.depth_mm.toFixed(2)} mm only.</div>`;
+    return fitAll();
+  }
+  $("info").innerHTML = `<div class="stats">
+      <div class="stat"><div class="k">Card</div><div class="v">85<small>×</small>55<small>mm</small></div></div>
+      <div class="stat"><div class="k">Thickness</div><div class="v">${d.face_mm}<small>–</small>${d.top_mm}<small>mm</small></div></div>
+      <div class="stat wide"><div class="k">On the plate</div><div class="v">${d.copies}<small>${d.copies > 1 ? "cards" : "card"}</small></div>
+        <div class="hint">Every card shares the same swaps, so a full plate costs no extra filament changes.</div></div>
+    </div>
+    ${d.warnings.map(w => `<p class="warn">${esc(w)}</p>`).join("")}
+    <div class="sec-h" style="margin:18px 0 10px">Filament changes</div>
+    <ol class="steps"><li>${chip(d.start.hex)}<div><div class="what">Start in ${esc(d.start.name)}</div>
+      <div class="when">AMS slot ${d.start.slot} · card body${d.backing ? `, ${d.backing.toFixed(1)} mm of it in 0.2 mm layers` : ""}</div></div></li>
+    ${d.swaps.map(s => `<li>${chip(hex(s.name))}<div><div class="what">Swap to ${esc(s.name)}</div>
+      <div class="when">Z ${s.z.toFixed(2)} mm · slot ${s.slot}</div></div></li>`).join("")}</ol>
+    <div class="note">${$("cardFinish").value === "engrave" ? "Text and shapes are cut into the card colour on top, down to the filament below; the face stays smooth apart from the grooves. Text cards use the darkest filament as the face (0.4 mm hides what is under it, so the card is about 1 mm). Grooves are at least 0.8 mm; keep text at 5 mm cap height or more."
+      : "Text, bar and QR squares are raised to the top of their filament's layers, so each shows that filament solid."}</div>`;
+  fitAll();
+}
+
+// The colour of every layer as a strip above the layer slider, with swaps marked.
+function bands(cut) {
+  const swapAt = new Set(last.swaps.map(s => s.layer + 1));
+  $("bands").innerHTML = last.layer_hex.map((c, i) =>
+    `<span class="${swapAt.has(i + 1) ? "swap" : ""} ${i + 1 > cut ? "off" : ""}" style="background:${c}" title="Layer ${i + 1}"></span>`).join("");
+}
+
+// Picture and preview fill their panes at the same scale-to-fit, whatever their pixel sizes.
+function fitTo(el, w, h) {
+  const box = { width: el.parentElement.clientWidth, height: el.parentElement.clientHeight };  // untransformed size
+  if (!w || !h || !box.width) return;
+  const k = Math.min(box.width / w, box.height / h);
+  el.style.width = Math.floor(w * k) + "px"; el.style.height = Math.floor(h * k) + "px";
+}
+function fitAll() {
+  fitTo($("orig"), work.width, work.height);
+  fitTo($("prev"), $("prev").naturalWidth, $("prev").naturalHeight);
+  fitTo($("layerCv"), $("layerCv").width, $("layerCv").height);
+  fitTo($("beforeCv"), $("beforeCv").width, $("beforeCv").height);
+  showCrop(); wipeClip();
+}
+
+// The "before" side of Compare: the picture as edited, cut to the crop, so it lines up with the print.
+function drawBefore() {
+  if (!work.width) return;
+  const [x0, y0, x1, y1] = crop || [0, 0, work.width, work.height];
+  const k = Math.min(1, 1600 / Math.max(x1 - x0, y1 - y0)), cv = $("beforeCv");
+  cv.width = Math.round((x1 - x0) * k); cv.height = Math.round((y1 - y0) * k);
+  cv.getContext("2d").drawImage(work, x0, y0, x1 - x0, y1 - y0, 0, 0, cv.width, cv.height);
+}
+
+// ---- Views: side by side, Compare (wipe) or 3D ----
+let wipeAt = 0.5;
+function setView(v) {
+  if (v === "3d" && $("mode").value === "flat") v = "2d";
+  const was = document.body.classList.contains("wipe");
+  document.body.classList.toggle("wipe", v === "wipe");
+  $("view3d").checked = v === "3d";
+  for (const b of document.querySelectorAll("[data-view]")) b.setAttribute("aria-pressed", b.dataset.view === v);
+  if (was !== (v === "wipe")) { drawBefore(); zoomTo(1); }
+  if (last) showLayers();
+  fitAll();
+}
+function wipeClip() {
+  const on = document.body.classList.contains("wipe"), pane = $("wipe").parentElement.getBoundingClientRect();
+  $("wipe").style.left = wipeAt * 100 + "%";
+  // The line runs only over the picture, not the empty stage around it.
+  const shown = [$("prev"), $("layerCv")].find(el => el.style.display !== "none" && el.offsetWidth);
+  if (on && shown) { const r = shown.getBoundingClientRect(), t = Math.max(0, r.top - pane.top), b = Math.min(pane.height, r.bottom - pane.top);
+    Object.assign($("wipe").style, { top: t + "px", bottom: "auto", height: Math.max(0, b - t) + "px" }); }
+  for (const el of [$("prev"), $("layerCv")]) {
+    if (!on) { el.style.clipPath = ""; continue; }
+    const r = el.getBoundingClientRect(), f = Math.max(0, Math.min(1, (pane.left + wipeAt * pane.width - r.left) / (r.width || 1)));
+    el.style.clipPath = `inset(0 0 0 ${f * 100}%)`;
+  }
+}
+$("wipe").querySelector(".knob").onpointerdown = e => {
+  e.stopPropagation(); e.preventDefault();
+  const knob = e.currentTarget, pane = $("wipe").parentElement;
+  knob.setPointerCapture(e.pointerId);
+  knob.onpointermove = m => { const r = pane.getBoundingClientRect();
+    wipeAt = Math.max(0, Math.min(1, (m.clientX - r.left) / r.width)); wipeClip(); };
+  knob.onpointerup = () => { knob.onpointermove = knob.onpointerup = null; };
+};
+
+// ---- Zoom and pan: both panes move together, so the same spot is under the cursor in each ----
+const Z = { s: 1, x: 0, y: 0 };
+function applyZoom() {
+  const pane = document.querySelector(".pane:not(.a)"), w = pane.clientWidth, h = pane.clientHeight;
+  if (Z.s <= 1) { Z.s = 1; Z.x = Z.y = 0; }
+  Z.x = Math.min(0, Math.max(w * (1 - Z.s), Z.x)); Z.y = Math.min(0, Math.max(h * (1 - Z.s), Z.y));
+  for (const f of document.querySelectorAll(".views .fit")) f.style.transform = Z.s === 1 ? "" : `translate(${Z.x}px, ${Z.y}px) scale(${Z.s})`;
+  document.body.classList.toggle("zoomed", Z.s > 1);
+  $("zoomV").textContent = Z.s === 1 ? "Fit" : Math.round(Z.s * 100) + "%";
+  wipeClip();
+}
+function zoomTo(s, cx, cy) {                     // cx, cy: the point to keep still, in pane pixels
+  const pane = document.querySelector(".pane:not(.a)");
+  if (cx === undefined) { cx = pane.clientWidth / 2; cy = pane.clientHeight / 2; }
+  s = Math.max(1, Math.min(16, s));
+  Z.x = cx - (cx - Z.x) * s / Z.s; Z.y = cy - (cy - Z.y) * s / Z.s; Z.s = s;
+  applyZoom();
+}
+$("zoomIn").onclick = () => zoomTo(Z.s * 1.5);
+$("zoomOut").onclick = () => zoomTo(Z.s / 1.5);
+$("zoomV").onclick = () => zoomTo(1);
+document.querySelector(".views").addEventListener("wheel", e => {
+  if (!original || e.target.closest("#three")) return;
+  e.preventDefault();
+  const r = e.target.closest(".pane").getBoundingClientRect();
+  zoomTo(Z.s * Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);
+}, { passive: false });
+let spaceDown = false;
+const panKey = e => spaceDown || e.button === 1;
+for (const pane of document.querySelectorAll(".views .pane")) {
+  const activePointers = new Map();
+  let prevDist = null, prevMid = null, panStart = null;
+
+  function endPan() {
+    panStart = null;
+    document.body.classList.remove("panning");
+  }
+
+  function updatePinch() {
+    if (activePointers.size >= 2) {
+      const pts = Array.from(activePointers.values());
+      prevDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+      prevMid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+    } else {
+      prevDist = null;
+      prevMid = null;
+    }
+  }
+
+  pane.addEventListener("pointerdown", e => {
+    if (e.target.closest("#three, #wipe, .tag")) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 1) {
+      if (pane.classList.contains("a") && !panKey(e)) return;
+      if (Z.s === 1 && !panKey(e)) return;
+      e.preventDefault();
+      try { pane.setPointerCapture(e.pointerId); } catch {}
+      document.body.classList.add("panning");
+      panStart = [e.clientX - Z.x, e.clientY - Z.y];
+    } else if (activePointers.size >= 2) {
+      endPan();
+      cancelStroke();
+      for (const id of activePointers.keys()) {
+        try { pane.setPointerCapture(id); } catch {}
+      }
+      updatePinch();
+    }
+  });
+
+  pane.addEventListener("pointermove", e => {
+    if (!activePointers.has(e.pointerId)) return;
+    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (activePointers.size === 1) {
+      if (panStart) {
+        Z.x = e.clientX - panStart[0];
+        Z.y = e.clientY - panStart[1];
+        applyZoom();
+      }
+    } else if (activePointers.size === 2) {
+      e.preventDefault();
+      const pts = Array.from(activePointers.values());
+      const newDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+      const newMid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+      const r = pane.getBoundingClientRect();
+
+      if (prevDist && newDist && prevDist > 0) {
+        const s = Z.s * (newDist / prevDist);
+        zoomTo(s, prevMid.x - r.left, prevMid.y - r.top);
+      }
+      if (prevMid) {
+        Z.x += (newMid.x - prevMid.x);
+        Z.y += (newMid.y - prevMid.y);
+        applyZoom();
+      }
+      prevDist = newDist;
+      prevMid = newMid;
+    }
+  });
+
+  const onPointerEnd = e => {
+    if (e.type === "lostpointercapture" && e.target !== pane) return;
+    activePointers.delete(e.pointerId);
+    updatePinch();
+    if (activePointers.size === 0) {
+      endPan();
+    }
+  };
+
+  pane.addEventListener("pointerup", onPointerEnd);
+  pane.addEventListener("pointercancel", onPointerEnd);
+  pane.addEventListener("lostpointercapture", onPointerEnd);
+
+  pane.addEventListener("dblclick", e => { if (!e.target.closest("#three") && !pane.classList.contains("a")) zoomTo(Z.s > 1 ? 1 : 3, e.clientX - pane.getBoundingClientRect().left, e.clientY - pane.getBoundingClientRect().top); });
+}
+document.addEventListener("keydown", e => { if (e.code === "Space" && !e.target.matches("input[type=text], input[type=number], select, textarea") && !e.target.closest(".side, #picker, dialog")) { spaceDown = true; document.body.classList.add("space"); e.preventDefault(); } });
+document.addEventListener("keyup", e => { if (e.code === "Space") { spaceDown = false; document.body.classList.remove("space"); } });
+$("prev").onload = fitAll;
+const panesSeen = new ResizeObserver(fitAll);
+document.querySelectorAll(".views .pane").forEach(p => panesSeen.observe(p));
+
+// What the print looks like when stopped after layer `cut`: every pixel shows
+// the colour of min(its height, cut) layers.
+function outsideCorner(i, w, h, px, r) {
+  if (!r) return false;
+  const dx = Math.max(Math.abs((i % w + 0.5) * px - w * px / 2) - (w * px / 2 - r), 0);
+  const dy = Math.max(Math.abs((Math.floor(i / w) + 0.5) * px - h * px / 2) - (h * px / 2 - r), 0);
+  return Math.hypot(dx, dy) > r;
+}
+
+function showLayers() {
+  if (!last) return;
+  const cut = +$("cut").value, top = last.layer_hex.length;
+  const f = last.swaps.find(s => s.layer + 1 === cut);
+  $("cutV").textContent = `· ${cut} of ${top} · Z ${last.layer_z[cut - 1].toFixed(2)} mm` + (f ? ` · swap to ${f.name} here` : "") +
+    (cut === top ? " · finished print" : "");
+  bands(cut); fill($("cut"));
+  const is3d = $("view3d").checked;
+  $("prevCap").textContent = is3d ? "3D view · drag to turn, scroll to zoom" : cut === top ? "How the print should look" : `Stopped after layer ${cut}`;
+  $("prev").style.display = !is3d && cut === top ? "" : "none";
+  $("layerCv").style.display = !is3d && cut < top ? "block" : "none";
+  $("three").style.display = is3d ? "block" : "none";
+  if (is3d) return draw3d(cut);
+  if (cut === top) return wipeClip();
+  const [h, w] = last.shape, cv = $("layerCv");
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext("2d"), img = ctx.createImageData(w, h);
+  const rgb = last.layer_hex.map(x => [1, 3, 5].map(i => parseInt(x.slice(i, i + 2), 16)));
+  for (let i = 0; i < w * h; i++) {
+    if (outsideCorner(i, w, h, last.px_mm, last.corner_mm)) continue;
+    const c = rgb[Math.min(last.h[i], cut) - 1];
+    img.data.set([c[0], c[1], c[2], 255], i * 4);
+  }
+  ctx.putImageData(img, 0, 0); fitAll();
+}
+$("cut").oninput = () => { cutAtTop = +$("cut").value === last?.layer_hex.length; showLayers(); };
+for (const b of document.querySelectorAll("[data-view]")) b.onclick = () => setView(b.dataset.view);
+
+// 3D view: three.js r160 (MIT, vendored in static/vendor), loaded the first time it is switched on.
+let T = null;
+async function draw3d(cut) {
+  if (!T) {
+    let THREE, OrbitControls;
+    try {
+      THREE = await import("three");
+      ({ OrbitControls } = await import("/vendor/OrbitControls.js"));
+    } catch (e) {
+      $("three").textContent = "Could not load the 3D view: " + e.message;
+      return;
+    }
+    const el = $("three"), renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    el.append(renderer.domElement);
+    const scene = new THREE.Scene();
+    const cam = new THREE.PerspectiveCamera(35, 1, 1, 5000);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x666666, 2.2));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.4); sun.position.set(0, -1, 3); scene.add(sun);
+    const controls = new OrbitControls(cam, renderer.domElement);
+    controls.enableDamping = true;
+    T = { THREE, renderer, scene, cam, controls, mesh: null, key: null };
+    const loop = () => { requestAnimationFrame(loop); controls.update(); renderer.render(scene, cam); };
+    loop();
+    new ResizeObserver(() => { const r = el.getBoundingClientRect();
+      renderer.setSize(r.width, r.height, false); cam.aspect = r.width / r.height; cam.updateProjectionMatrix(); }).observe(el);
+  }
+  const { THREE, scene, cam, controls } = T;
+  const [h, w] = last.shape, mmPx = last.px_mm, EXAG = 1.5; // a little taller than real so the relief reads
+  const fresh = T.key !== last.preview;
+  if (T.mesh) { scene.remove(T.mesh); T.mesh.geometry.dispose(); }
+  const g = new THREE.PlaneGeometry(w * mmPx, h * mmPx, w - 1, h - 1);
+  const pos = g.attributes.position, col = new Float32Array(w * h * 3);
+  const rgb = last.layer_hex.map(x => new THREE.Color(x));
+  for (let i = 0; i < w * h; i++) {
+    if (outsideCorner(i, w, h, mmPx, last.corner_mm)) continue;
+    const n = Math.min(last.h[i], cut);
+    pos.setZ(i, last.layer_z[n - 1] * EXAG);
+    col.set([rgb[n - 1].r, rgb[n - 1].g, rgb[n - 1].b], i * 3);
+  }
+  if (last.corner_mm) {
+    const idx = [], arr = g.index.array;
+    for (let k = 0; k < arr.length; k += 3) {
+      if (!outsideCorner(arr[k], w, h, mmPx, last.corner_mm) &&
+          !outsideCorner(arr[k + 1], w, h, mmPx, last.corner_mm) &&
+          !outsideCorner(arr[k + 2], w, h, mmPx, last.corner_mm))
+        idx.push(arr[k], arr[k + 1], arr[k + 2]);
+    }
+    g.setIndex(idx);
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  T.mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.8 }));
+  scene.add(T.mesh);
+  if (fresh) {                                   // new picture or settings: reset the camera
+    T.key = last.preview;
+    const d = Math.max(h * mmPx, w * mmPx / cam.aspect) / (2 * Math.tan(cam.fov * Math.PI / 360)) * 1.3;
+    cam.position.set(0, -d * 0.55, d * 0.84); controls.target.set(0, 0, 0);
+  }
+}
+
+// ---- Editing the picture: crop box, paint brush, text (all in the browser) ----
+// `work` holds the picture as edited, at most 2400 px on the long side; it is
+// what the app gets. The crop is sent as a box in `work` pixels.
+const work = document.createElement("canvas"), wctx = work.getContext("2d");
+let original = null, history = [], crop = null, drag = null;
+
+function size() { return +$("inkSize").value / 200 * Math.max(work.width, work.height); }
+function showWork() {
+  const c = $("orig"); c.width = work.width; c.height = work.height;
+  c.getContext("2d").drawImage(work, 0, 0); drawBefore(); fitAll();
+  $("thumb").style.backgroundImage = `url(${work.toDataURL("image/jpeg", 0.6)})`; $("thumb").innerHTML = "";
+}
+function showCrop() {
+  const b = $("cropBox");
+  if (!crop) { b.style.display = "none"; $("origCap").textContent = "Picture"; return; }
+  const c = $("orig"), k = c.clientWidth / work.width;
+  Object.assign(b.style, { display: "block", left: c.offsetLeft + crop[0] * k + "px", top: c.offsetTop + crop[1] * k + "px",
+    width: (crop[2] - crop[0]) * k + "px", height: (crop[3] - crop[1]) * k + "px" });
+  $("origCap").innerHTML = 'Picture · cropped · <a href="#" id="noCrop">Remove crop</a>';
+}
+function at(e) {
+  const r = $("orig").getBoundingClientRect(), k = work.width / r.width;
+  return [Math.max(0, Math.min(work.width, (e.clientX - r.left) * k)), Math.max(0, Math.min(work.height, (e.clientY - r.top) * k))];
+}
+function snapshot() { const dropped = history.length >= 12 ? history.shift() : null; history.push(wctx.getImageData(0, 0, work.width, work.height)); return dropped; }
+async function sendWork() {
+  status("Loading picture…", "busy");
+  const blob = await new Promise(ok => work.toBlob(ok, "image/jpeg", 0.95));
+  const d = await (await fetch("/api/image", { method: "POST", body: blob })).json();
+  if (d.error) { $("info").innerHTML = `<div class="err">${esc(d.error)}</div>`; status("Could not load", ""); return; }
+  imageId = d.image; $("export").disabled = $("saveProj").disabled = false; update();
+}
+
+let strokePointerId = null;
+function cancelStroke() {
+  if (!drag) return;
+  const { tool, prevCrop, dropped } = drag; drag = null;
+  if (tool === "paint") {
+    if (history.length) { wctx.putImageData(history.pop(), 0, 0); showWork(); }
+    if (dropped) history.unshift(dropped);
+  } else if (tool === "crop") {
+    crop = prevCrop; showCrop(); drawBefore();
+  }
+  if (strokePointerId !== null) {
+    try { $("orig").releasePointerCapture(strokePointerId); } catch {}
+    strokePointerId = null;
+  }
+}
+
+$("orig").onpointerdown = e => {
+  if (!original || panKey(e)) return;
+  if (drag) { cancelStroke(); return; }
+  const p = at(e), tool = $("tool").value;
+  strokePointerId = e.pointerId;
+  try { $("orig").setPointerCapture(e.pointerId); } catch {}
+  if (tool === "text") {
+    const t = $("textIn").value.trim(); if (!t) { $("textIn").focus(); return; }
+    snapshot();
+    wctx.fillStyle = $("ink").value; wctx.font = `bold ${Math.round(size() * 3)}px system-ui, sans-serif`;
+    wctx.textAlign = "center"; wctx.textBaseline = "middle"; wctx.fillText(t, p[0], p[1]);
+    showWork(); sendWork(); strokePointerId = null; return;
+  }
+  let dropped = null;
+  if (tool === "paint") { dropped = snapshot(); wctx.strokeStyle = $("ink").value; wctx.lineCap = wctx.lineJoin = "round"; }
+  drag = { tool, start: p, last: p, prevCrop: crop ? [...crop] : null, dropped };
+  if (tool === "paint") stroke(p);
+};
+function stroke(p) {
+  wctx.lineWidth = size(); wctx.beginPath(); wctx.moveTo(...drag.last); wctx.lineTo(...p); wctx.stroke();
+  drag.last = p; $("orig").getContext("2d").drawImage(work, 0, 0);
+}
+$("orig").onpointermove = e => {
+  if (!drag) return;
+  const p = at(e);
+  if (drag.tool === "paint") return stroke(p);
+  const [a, b] = drag.start;
+  crop = [Math.min(a, p[0]), Math.min(b, p[1]), Math.max(a, p[0]), Math.max(b, p[1])].map(Math.round);
+  showCrop();
+};
+$("orig").onpointerup = () => {
+  strokePointerId = null;
+  if (!drag) return;
+  const tool = drag.tool; drag = null;
+  if (tool === "paint") return sendWork();
+  if (crop && (crop[2] - crop[0] < 20 || crop[3] - crop[1] < 20)) crop = null;   // a click, not a box
+  showCrop(); drawBefore(); fitAll(); cutAtTop = true; schedule();
+};
+$("orig").onpointercancel = () => cancelStroke();
+$("tool").onchange = () => {
+  const t = $("tool").value;
+  $("textIn").style.display = t === "text" ? "" : "none";
+  for (const id of ["ink", "inkSize", "inkSep"]) $(id).style.display = t === "crop" ? "none" : "";
+  for (const b of document.querySelectorAll("[data-tool]")) b.setAttribute("aria-pressed", b.dataset.tool === $("tool").value);
+  $("orig").style.cursor = $("tool").value === "text" ? "text" : "crosshair";
+};
+for (const b of document.querySelectorAll("[data-tool]")) b.onclick = () => { $("tool").value = b.dataset.tool; $("tool").onchange(); };
+$("undo").onclick = e => { e.preventDefault(); if (history.length) { wctx.putImageData(history.pop(), 0, 0); showWork(); sendWork(); } };
+$("resetEdits").onclick = e => { e.preventDefault(); if (original) { start(original); sendWork(); } };
+document.addEventListener("click", e => { if (e.target.id === "noCrop") { e.preventDefault(); crop = null; showCrop(); drawBefore(); fitAll(); schedule(); } });
+
+function start(img) {
+  const k = Math.min(1, 2400 / Math.max(img.width, img.height));
+  work.width = Math.round(img.width * k); work.height = Math.round(img.height * k);
+  wctx.drawImage(img, 0, 0, work.width, work.height);
+  history = []; crop = null; document.body.classList.add("ready"); showWork();
+  $("picSub").textContent = `${img.width} × ${img.height} px`;
+}
+
+async function upload(file) {
+  status("Loading picture…", "busy");
+  const img = new Image(); img.src = URL.createObjectURL(file);
+  await img.decode();
+  original = img; start(img);
+  $("picName").textContent = file.name; $("pickBtn").lastChild.textContent = "Replace";
+  if ($("title").value === autoTitle) $("title").value = autoTitle = file.name.replace(/\.[^.]+$/, "");
+  await sendWork();
+}
+
+// Drop anywhere on the stage; click the empty state or the Choose button.
+$("dropCard").onclick = $("pickBtn").onclick = () => $("file").click();
+$("dropCard").onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("file").click(); } };
+$("file").onchange = e => { e.target.files[0] && upload(e.target.files[0]); e.target.value = ""; };
+const stage = $("stage");
+stage.ondragover = e => { e.preventDefault(); (original ? stage : $("drop")).classList.add("over"); };
+stage.ondragleave = e => { if (!stage.contains(e.relatedTarget)) { stage.classList.remove("over"); $("drop").classList.remove("over"); } };
+stage.ondrop = e => { e.preventDefault(); stage.classList.remove("over"); $("drop").classList.remove("over");
+  e.dataTransfer.files[0] && upload(e.dataTransfer.files[0]); };
+
+// Short messages after an export or a save show as a toast.
+let toastT = null;
+new MutationObserver(() => {
+  const t = $("exportMsg"); clearTimeout(toastT);
+  t.classList.toggle("show", !!t.textContent);
+  if (t.textContent && !t.dataset.sticky) toastT = setTimeout(() => t.classList.remove("show"), 5000);
+}).observe($("exportMsg"), { childList: true, characterData: true, subtree: true });
+
+$("export").onclick = async () => {
+  const wall = settings().wall !== "off";
+  $("export").disabled = true; $("exportMsg").dataset.sticky = 1;
+  $("exportMsg").textContent = wall ? "Building every tile, about a minute for a big wall…" : "Building the full-size 3MF, about 10–20 s…";
+  const r = await fetch("/api/export", { method: "POST", body: JSON.stringify(settings()) });
+  delete $("exportMsg").dataset.sticky;
+  if (r.ok) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(await r.blob());
+    a.download = /filename="([^"]+)"/.exec(r.headers.get("Content-Disposition") || "")?.[1] || (settings().title || "layertone") + ".3mf"; a.click();
+    $("exportMsg").textContent = wall ? "Saved a zip: unzip it, open each tile's 3MF in Bambu Studio (filaments and swaps are set) and follow the layout sheet."
+                                      : "Saved. Open it in Bambu Studio; the filaments and swaps are already set.";
+    const q = settings();
+    if (q.stand !== "none" && lastPrint) {
+      $("exportMsg").dataset.sticky = 1; $("exportMsg").textContent = "Building the stand…";
+      const rs = await fetch("/api/stand", { method: "POST", body: JSON.stringify({ ...q, size_mm: lastPrint.size_mm, top_mm: lastPrint.top_mm }) });
+      delete $("exportMsg").dataset.sticky;
+      if (rs.ok) {
+        const b = document.createElement("a");
+        b.href = URL.createObjectURL(await rs.blob()); b.download = (q.title || "layertone") + "_stand.3mf"; b.click();
+        $("exportMsg").textContent = "Saved the print and its stand (two 3MFs). Print the stand in one colour.";
+      } else $("exportMsg").textContent = (await rs.json()).error;
+    }
+  } else {
+    $("exportMsg").textContent = (await r.json()).error;
+  }
+  $("export").disabled = false;
+};
+$("boardBtn").onclick = async e => {
+  e.preventDefault();
+  if (!imageId) { $("exportMsg").textContent = "Choose a picture first; the board uses its swaps."; return; }
+  const d = await (await fetch("/api/board", { method: "POST", body: JSON.stringify(settings()) })).json();
+  if (d.error) { $("exportMsg").textContent = d.error; return; }
+  const save = (href, name) => { const a = document.createElement("a"); a.href = href; a.download = name; a.click(); };
+  save("data:application/octet-stream;base64," + d.threemf, "calibration_board.3mf");
+  save(d.chart, "calibration_board_chart.png");
+  $("exportMsg").textContent = "Saved the board (3MF) and its chart (PNG).";
+};
+$("mode").onchange = () => {
+  if ($("mode").value !== "layers" && $("view3d").checked) setView("2d");
+  if ($("mode").value === "card" && document.body.classList.contains("wipe")) setView("2d");
+  labels(); manualSwaps = null; fillStack(stackKeys()); schedule();
+};
+for (const b of document.querySelectorAll("[data-mode]")) b.onclick = () => { $("mode").value = b.dataset.mode; $("mode").onchange(); };
+$("suggestBtn").onclick = async e => {
+  e.preventDefault();
+  if (!imageId) { $("suggestOut").textContent = "Choose a picture first."; return; }
+  $("suggestOut").textContent = "Trying every filament at every place in the Stack…";
+  const r = await fetch("/api/suggest", { method: "POST", body: JSON.stringify(settings()) });
+  const d = await r.json();
+  if (d.error) { $("suggestOut").textContent = d.error; return; }
+  const keys = stackKeys().filter(Boolean);
+  window._sugg = d.found;
+  $("suggestOut").innerHTML = d.found.length ? `Colour error now ${d.now}. Adding one filament:<ol>` +
+    d.found.map((f, i) => `<li><span class="sw on" style="display:inline-block;width:12px;height:12px;vertical-align:-1px;background:${f.hex}"></span>
+      ${esc(f.name)} → <b>${f.error}</b> ${f.position === 0 ? "at the bottom" : "after " + esc(lib[keys[f.position - 1]].name)}
+      · <a href="#" class="useSugg" data-i="${i}">${f.owned ? "Use" : "Add to my list"}</a></li>`).join("") + "</ol>"
+    : "No single filament makes this picture better.";
+};
+// A full set: the best 2, 3 and 4 filaments for this picture, from your list plus common filaments you could buy.
+// Filaments you don't own join the list for this session only ("trial"), so you can preview them first.
+let trial = {};
+$("suggestSetBtn").onclick = async e => {
+  e.preventDefault();
+  if (!imageId) { $("suggestOut").textContent = "Choose a picture first."; return; }
+  $("suggestOut").textContent = `Trying about 70 filaments in every order… ${+$("setMost").value > 4 ? "up to half a minute" : "a few seconds"}.`;
+  const r = await fetch("/api/suggest_set", { method: "POST", body: JSON.stringify({ ...settings(), most: +$("setMost").value }) });
+  const d = await r.json();
+  if (d.error) { $("suggestOut").textContent = d.error; return; }
+  window._sets = d.sets;
+  const src = f => f.owned ? "you have it" : `buy · TD ${f.td} ${{ maker: "from the maker", community: "measured by one user" }[f.td_source] || "is a guess"}`;
+  $("suggestOut").innerHTML = d.sets.map((s, i) => `<div class="setOpt" style="margin:10px 0">
+      <b>${s.filaments.length} filaments</b> · colour error <b>${s.error}</b>${i === d.recommended ? " · <b>recommended</b>" : ""}
+      · <a href="#" class="trySet" data-i="${i}">Try it</a>
+      <ol style="margin:4px 0 0">${s.filaments.map(f => `<li><span class="sw on" style="display:inline-block;width:12px;height:12px;vertical-align:-1px;background:${f.hex}"></span>
+        ${esc(f.name)} <span style="opacity:.7">(${src(f)})</span></li>`).join("")}</ol></div>`).join("") +
+    `<p style="margin:6px 0 0">Bottom filament first. TD values are only a start: print a calibration board once you have the spools.</p>`;
+};
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("trySet")) return;
+  e.preventDefault();
+  const s = window._sets[+e.target.dataset.i];
+  for (const f of s.filaments) if (!f.owned) trial[f.key] = { key: f.key, name: f.name, hex: f.hex, td: f.td, slot: 0, trial: true };
+  lib = { ...lib, ...trial };
+  manualSwaps = null; fillStack(s.filaments.map(f => f.key)); schedule();
+});
+document.addEventListener("click", e => {
+  if (!e.target.classList.contains("useSugg")) return;
+  e.preventDefault();
+  const f = window._sugg[+e.target.dataset.i];
+  if (f.owned) {
+    const keys = stackKeys().filter(Boolean); keys.splice(f.position, 0, f.key);
+    manualSwaps = null; fillStack(keys); schedule(); $("suggestOut").textContent = "";
+  } else {
+    const cur = libFromTable(); cur[f.key] = { name: f.name, hex: f.hex, td: f.td, slot: 1 };
+    libTable(cur); $("libBox").showModal();
+    $("libMsg").textContent = "Added. Set its AMS slot, then Save. TD is a rough guess until you print a swatch.";
+  }
+});
+$("libOpen").onclick = e => { e.preventDefault(); libTable(); $("libMsg").textContent = ""; $("libBox").showModal(); };
+$("libClose").onclick = () => $("libBox").close();
+$("libBox").onclick = e => { if (e.target === $("libBox")) $("libBox").close(); };   // click on the backdrop
+$("libAdd").onclick = e => { e.preventDefault();
+  const cur = libFromTable(); cur["new_" + Date.now() % 100000] = { name: "New filament", hex: "#888888", td: 1.5, slot: 1 }; libTable(cur); };
+$("libSave").onclick = e => { e.preventDefault(); saveLib(libFromTable()); };
+function download(name, text) {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  a.download = name; a.click();
+}
+$("libExport").onclick = e => { e.preventDefault(); download("layertone-filaments.json", JSON.stringify(Object.fromEntries(Object.entries(lib).filter(([, f]) => !f.trial)), null, 2)); };
+$("libImport").onclick = e => { e.preventDefault(); $("libFile").click(); };
+$("libFile").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { libTable({ ...libFromTable(), ...JSON.parse(await f.text()) });
+        $("libMsg").textContent = "Imported. Check the list, then Save."; }
+  catch { $("libMsg").textContent = "That file is not a filament list."; }
+  e.target.value = "";
+};
+
+// ---- Projects: the edited picture plus every setting, in one .json file ----
+const CONTROLS = ["width", "base", "top", "backing", "frame", "frameStyle", "brightness", "contrast", "detail", "dither", "thin", "smooth", "colours", "speck", "title",
+                  "mode", "stand", "standFil", "wall", "join", "cardLines", "cardQr", "cardFace", "cardInk", "cardAccent", "cardPicture", "cardBorder", "cardCopies", "cardFinish"];
+$("saveProj").onclick = () => {
+  const p = { layertone_project: 1, image: work.toDataURL("image/jpeg", 0.92), stack: stackKeys(), crop, swaps: manualSwaps,
+              filaments: Object.fromEntries(stackKeys().filter(Boolean).map(k => [k, lib[k]])),
+              controls: Object.fromEntries(CONTROLS.map(id => [id, $(id).value])) };
+  download(($("title").value || "layertone") + ".layertone.json", JSON.stringify(p));
+  $("exportMsg").textContent = "Project saved.";
+};
+$("openProj").onclick = () => $("projFile").click();
+$("projFile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  let p; try { p = JSON.parse(await f.text()); } catch { p = null; }
+  if (!p || !p.layertone_project) { $("exportMsg").textContent = "That file is not a layertone project."; return; }
+  const missing = p.stack.filter(k => k && !(k in lib));
+  if (missing.length) $("exportMsg").textContent = `Not in your filament list: ${missing.join(", ")}. Import them under Manage filaments.`;
+  const img = new Image(); img.src = p.image; await img.decode();
+  original = img; start(img); $("picName").textContent = f.name; $("pickBtn").lastChild.textContent = "Replace";
+  if ($("frameStyle")) $("frameStyle").value = "flat";
+  for (const [id, v] of Object.entries(p.controls)) if ($(id)) $(id).value = v;
+  autoTitle = null; fillStack(p.stack); labels();
+  crop = p.crop; manualSwaps = p.swaps; showCrop(); cutAtTop = true;
+  await sendWork();
+};
+// Keyboard: C / B / T pick a tool, D toggles 3D, W Compare, + / - / 0 zoom, Ctrl+Z undo, Ctrl+S save, Ctrl+E export.
+document.addEventListener("keydown", e => {
+  if (e.target.matches("input[type=text], input[type=number], select, textarea") || $("libBox").open) return;
+  const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  if (mod && k === "z") { e.preventDefault(); $("undo").click(); }
+  else if (mod && k === "s") { e.preventDefault(); if (!$("saveProj").disabled) $("saveProj").click(); }
+  else if (mod && k === "e") { e.preventDefault(); if (!$("export").disabled) $("export").click(); }
+  else if (mod || e.altKey) return;
+  else if ({ c: "crop", b: "paint", t: "text" }[k]) { $("tool").value = { c: "crop", b: "paint", t: "text" }[k]; $("tool").onchange(); }
+  else if (k === "d" && last) setView($("view3d").checked ? "2d" : "3d");
+  else if (k === "w" && original) setView(document.body.classList.contains("wipe") ? "2d" : "wipe");
+  else if ((k === "+" || k === "=") && original) zoomTo(Z.s * 1.5);
+  else if (k === "-" && original) zoomTo(Z.s / 1.5);
+  else if (k === "0") zoomTo(1);
+});
+init();
+</script>
+</body>
+</html>

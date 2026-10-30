@@ -1,0 +1,42 @@
+[project]
+name = "layertone"
+version = "0.1.0b1"
+description = "Turn a picture into a layered filament relief for Bambu printers (HueForge-style)"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Akoozie" }]
+requires-python = ">=3.10"
+keywords = ["3d-printing", "hueforge", "filament", "bambu-lab", "lithophane", "3mf"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+]
+dependencies = ["numpy", "pillow", "pydelatin", "resvg-py", "segno", "manifold3d", "scipy"]
+
+[project.urls]
+Homepage = "https://github.com/Akoozie/layertone"
+Issues = "https://github.com/Akoozie/layertone/issues"
+
+[project.optional-dependencies]
+faces = ["onnxruntime", "opencv-python-headless"]
+
+[project.scripts]
+layertone = "layertone.cli:main"
+layertone-ui = "layertone.server:main"
+layertone-swatch = "layertone.swatch:main"
+layertone-board = "layertone.board:main"
+layertone-card = "layertone.card:main"
+layertone-stand = "layertone.stand:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+layertone = ["filaments.json", "catalogue.json", "templates/*.3mf", "static/*.html", "static/vendor/*", "fonts/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
