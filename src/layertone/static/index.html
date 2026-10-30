@@ -68,20 +68,7 @@
   .side.left { border-right: 1px solid var(--line); }
   .side.right { border-left: 1px solid var(--line); }
   @media (max-width: 1180px) { .work { grid-template-columns: 256px minmax(0, 1fr) 236px; } .stat .v { font-size: 15px; } .stat { padding: 9px 10px; } .stats { grid-template-columns: 1fr; } }
-  @media (max-width: 900px) {   /* narrow window: one scrolling column */
-    body { overflow: auto; }
-    .app { height: auto; grid-template-rows: auto 1fr; }
-    .topbar { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
-    .topbar .spacer { flex-basis: 100%; height: 0; margin: 0; }
-    .work { grid-template-columns: 1fr; }
-    .stage { order: -1; grid-template-rows: auto minmax(0, 1fr) auto; }
-    .toolbar { flex-wrap: wrap; padding: 6px 12px; }
-    .toolbar .grp.zoom { display: none; }
-    .views { height: 62vh; }
-    .side.left, .side.right { border: 0; }
-    .status, .topbar .sep, .topbar .title { display: none; }
-    .seg button { padding: 0 8px; }
-  }
+
 
   /* ---- Controls ---- */
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 32px; padding: 0 12px;
@@ -160,7 +147,7 @@
   .row.dragging { opacity: .45; }
   .row.drop-before { box-shadow: 0 -2px 0 var(--accent); } .row.drop-after { box-shadow: 0 2px 0 var(--accent); }
   .grip { width: 18px; height: 40px; flex: none; display: grid; place-items: center; border: 0; background: none; padding: 0;
-    color: var(--muted); cursor: grab; border-radius: 5px; font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    color: var(--muted); cursor: grab; border-radius: 5px; font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; touch-action: none; }
   .grip:hover { background: var(--sunken); color: var(--ink); }
   .grip .n { display: block; } .grip svg { display: none; width: 12px; height: 12px; }
   .row:hover .grip .n, .grip:focus-visible .n { display: none; } .row:hover .grip svg, .grip:focus-visible svg { display: block; }
@@ -347,6 +334,179 @@
   .cardgrid { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; }
   .cardgrid label { color: var(--ink-2); font-weight: 500; }
   .warn { font-size: 12px; color: var(--warn); margin: 8px 0 0; }
+
+  @media (max-width: 900px) {   /* narrow window: one scrolling column with sticky stage */
+    html {
+      scroll-padding-top: 42vh;
+      scroll-padding-top: 42dvh;
+      scroll-padding-top: 42svh;
+    }
+    body { overflow-x: hidden; overflow-y: auto; }
+    .app { height: auto; grid-template-rows: auto 1fr; }
+    .topbar { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+    .topbar .spacer { flex-basis: 100%; height: 0; margin: 0; }
+    .work {
+      grid-template-columns: 1fr;
+    }
+    .side { overflow: visible; min-height: auto; }
+    .stage {
+      order: -1;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background-color: var(--stage);
+      height: 42vh;
+      height: 42dvh;
+      height: 42svh;
+      max-height: 42vh;
+      max-height: 42dvh;
+      max-height: 42svh;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      box-shadow: 0 2px 8px #0000001a;
+    }
+    .toolbar { flex-wrap: wrap; padding: 4px 8px; min-height: 36px; }
+    .toolbar .grp.zoom { display: none; }
+    .views {
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding: 4px 8px 6px;
+      min-height: 0;
+      height: auto;
+    }
+    .pane.a { display: none; }
+    .pane:not(.a) { display: block; }
+    body.phone-pic .pane.a { display: block; }
+    body.phone-pic .pane:not(.a) { display: none; }
+    body.wipe .pane.a, body.card .pane.a, body.view3d .pane.a { display: none !important; }
+    body.wipe .pane:not(.a), body.card .pane:not(.a), body.view3d .pane:not(.a) { display: block !important; }
+    .timeline {
+      margin: 0 8px 4px;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+    .tl-head { margin-bottom: 2px; }
+    .tl-legend { display: none; }
+    #bands { height: 14px; }
+    #cut { height: 22px; inset: -4px -3px; }
+    #cut::-webkit-slider-thumb { height: 22px; }
+    #cut::-moz-range-thumb { height: 22px; }
+    .drop-card { padding: 20px 16px; }
+    .how { display: none; }
+    .side.left, .side.right { border: 0; }
+    .status, .topbar .sep, .topbar .title { display: none; }
+    .seg button { padding: 0 8px; }
+    .field { scroll-margin-top: 12px; }
+  }
+
+  @media (max-width: 900px) and (max-height: 500px) {
+    html {
+      scroll-padding-top: 0;
+    }
+    /* not pinned here, so there is room for the hint: the two ends on one line, the hint under them */
+    .tl-legend { display: flex; flex-wrap: wrap; row-gap: 2px; }
+    .tl-legend span:nth-child(2) { order: 3; flex-basis: 100%; }
+    .stage {
+      position: static;
+      height: auto;
+      max-height: none;
+      box-shadow: none;
+    }
+    .views {
+      height: 62vh;
+    }
+  }
+
+  /* ---- Touch targets and touch interactions ---- */
+  @media (pointer: coarse) {
+    /* Stage toolbar buttons stay compact so the pinned preview stage does not grow. */
+    .topbar button,
+    .side button,
+    dialog button {
+      height: 44px;
+      min-height: 44px;
+    }
+    .topbar .btn.icon,
+    .side .btn.icon,
+    dialog .btn.icon {
+      width: 44px;
+      min-width: 44px;
+    }
+    .topbar .seg button {
+      height: 44px;
+      min-height: 44px;
+    }
+    .topbar select,
+    .side select,
+    .side input[type=text],
+    .side input[type=number],
+    .topbar input[type=text],
+    dialog select,
+    dialog input[type=text],
+    dialog input[type=number] {
+      height: 44px;
+      min-height: 44px;
+    }
+    .side input[type=range],
+    dialog input[type=range] {
+      height: 44px;
+    }
+    .side input[type=range]::-webkit-slider-thumb,
+    dialog input[type=range]::-webkit-slider-thumb {
+      width: 28px;
+      height: 28px;
+      margin-top: -12px;
+    }
+    .side input[type=range]::-moz-range-thumb,
+    dialog input[type=range]::-moz-range-thumb {
+      width: 28px;
+      height: 28px;
+    }
+    #cut {
+      height: 32px;
+      inset: -4px -3px;
+    }
+    .stack-cap {
+      margin-left: 48px;
+    }
+    #picker .opt {
+      min-height: 44px;
+    }
+    .grip {
+      width: 44px;
+      min-width: 44px;
+      height: 44px;
+      min-height: 44px;
+      grid-auto-flow: column;
+      gap: 2px;
+      justify-content: center;
+      touch-action: none;
+    }
+    .grip .n,
+    .row:hover .grip .n,
+    .grip:focus-visible .n {
+      display: block;
+    }
+    .grip svg {
+      display: block;
+      width: 12px;
+      height: 12px;
+    }
+    .sec-h a,
+    .fDel {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0 8px;
+    }
+  }
+
+  @media (pointer: coarse) and (max-width: 900px) {
+    #cut {
+      inset: -9px -3px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -678,7 +838,7 @@ async function init() {
                     "cardLines", "cardQr", "cardBorder", "cardCopies"]) $(id).oninput = () => { labels(); schedule(); };
   for (const id of CARD_SELECTS.concat(["cardPicture", "cardRule", "cardFinish"])) $(id).onchange = () => { labels(); schedule(); };
   $("stand").onchange = $("standFil").onchange = $("wall").onchange = $("join").onchange = $("frameStyle").onchange = () => { labels(); schedule(); };
-  fillStandFil(); labels(); libTable();
+  fillStandFil(); labels(); libTable(); updateViewButtons();
 }
 function fillStandFil() {
   const keep = $("standFil").value || "jade_white";
@@ -745,10 +905,17 @@ function dragRow(e, row) {
     to = ins > from ? ins - 1 : ins;
     if (to !== from) ins < rows.length ? rows[ins].classList.add("drop-before") : rows[rows.length - 1].classList.add("drop-after");
   };
-  grip.onpointerup = () => {
-    grip.onpointermove = grip.onpointerup = null;
+  const done = () => {
+    try { grip.releasePointerCapture(e.pointerId); } catch (_) {}
+    grip.onpointermove = grip.onpointerup = grip.onpointercancel = null;
     rows.forEach(r => r.classList.remove("drop-before", "drop-after", "dragging"));
+  };
+  grip.onpointerup = () => {
+    done();
     moveRow(from, to);
+  };
+  grip.onpointercancel = () => {
+    done();
   };
 }
 
@@ -867,7 +1034,12 @@ function labels() {
   const flat = $("mode").value === "flat", card = $("mode").value === "card";
   document.body.classList.toggle("flat", flat);
   document.body.classList.toggle("card", card);
-  if (card) cardSelects();
+  if (card) {
+    cardSelects();
+    phonePane = "print";
+    document.body.classList.remove("phone-pic");
+  }
+  updateViewButtons();
   $("cardBorderV").textContent = +$("cardBorder").value ? `${(+$("cardBorder").value).toFixed(1)} mm` : "Off";
   $("cardCopiesV").textContent = $("cardCopies").value;
   if (card) $("export").disabled = false; else $("export").disabled = !imageId;
@@ -1069,13 +1241,48 @@ function drawBefore() {
 }
 
 // ---- Views: side by side, Compare (wipe) or 3D ----
-let wipeAt = 0.5;
+let wipeAt = 0.5, phonePane = "print";
+function isNarrow() { return window.matchMedia("(max-width: 900px)").matches; }
+function updateViewButtons() {
+  const b2d = document.querySelector('[data-view="2d"]');
+  if (!b2d) return;
+  const lbl = b2d.querySelector(".lbl");
+  if (!isNarrow()) {
+    if (lbl) lbl.textContent = "Side by side";
+    b2d.title = "Picture and print side by side";
+    b2d.querySelector("use")?.setAttribute("href", "#i-split");
+  } else {
+    const isCard = $("mode").value === "card";
+    const isPic = !isCard && document.body.classList.contains("phone-pic");
+    if (lbl) lbl.textContent = isPic ? "Picture" : "Print";
+    b2d.title = isPic ? "Picture (tap for print preview)" : "Print preview (tap for picture)";
+    b2d.querySelector("use")?.setAttribute("href", isPic ? "#i-image" : "#i-split");
+  }
+}
+function setPhonePane(p) {
+  phonePane = p;
+  document.body.classList.toggle("phone-pic", p === "picture");
+  updateViewButtons();
+  fitAll();
+}
 function setView(v) {
-  if (v === "3d" && $("mode").value === "flat") v = "2d";
+  if (v === "3d" && $("mode").value === "flat") return;
+  const narrow = isNarrow();
+  const cur2d = !document.body.classList.contains("wipe") && !$("view3d").checked;
+  if (v === "2d" && narrow && cur2d) {
+    if ($("mode").value === "card") return;
+    setPhonePane(phonePane === "print" ? "picture" : "print");
+    return;
+  }
   const was = document.body.classList.contains("wipe");
   document.body.classList.toggle("wipe", v === "wipe");
+  document.body.classList.toggle("view3d", v === "3d");
   $("view3d").checked = v === "3d";
   for (const b of document.querySelectorAll("[data-view]")) b.setAttribute("aria-pressed", b.dataset.view === v);
+  if (v === "2d" && narrow) {
+    document.body.classList.toggle("phone-pic", phonePane === "picture");
+  }
+  updateViewButtons();
   if (was !== (v === "wipe")) { drawBefore(); zoomTo(1); }
   if (last) showLayers();
   fitAll();
@@ -1104,8 +1311,15 @@ $("wipe").querySelector(".knob").onpointerdown = e => {
 
 // ---- Zoom and pan: both panes move together, so the same spot is under the cursor in each ----
 const Z = { s: 1, x: 0, y: 0 };
+function activePane() {
+  if (isNarrow() && document.body.classList.contains("phone-pic")) {
+    const a = document.querySelector(".pane.a");
+    if (a && a.clientWidth > 0) return a;
+  }
+  return document.querySelector(".pane:not(.a)");
+}
 function applyZoom() {
-  const pane = document.querySelector(".pane:not(.a)"), w = pane.clientWidth, h = pane.clientHeight;
+  const pane = activePane(), w = pane.clientWidth, h = pane.clientHeight;
   if (Z.s <= 1) { Z.s = 1; Z.x = Z.y = 0; }
   Z.x = Math.min(0, Math.max(w * (1 - Z.s), Z.x)); Z.y = Math.min(0, Math.max(h * (1 - Z.s), Z.y));
   for (const f of document.querySelectorAll(".views .fit")) f.style.transform = Z.s === 1 ? "" : `translate(${Z.x}px, ${Z.y}px) scale(${Z.s})`;
@@ -1114,7 +1328,7 @@ function applyZoom() {
   wipeClip();
 }
 function zoomTo(s, cx, cy) {                     // cx, cy: the point to keep still, in pane pixels
-  const pane = document.querySelector(".pane:not(.a)");
+  const pane = activePane();
   if (cx === undefined) { cx = pane.clientWidth / 2; cy = pane.clientHeight / 2; }
   s = Math.max(1, Math.min(16, s));
   Z.x = cx - (cx - Z.x) * s / Z.s; Z.y = cy - (cy - Z.y) * s / Z.s; Z.s = s;
@@ -1416,6 +1630,10 @@ $("tool").onchange = () => {
   for (const id of ["ink", "inkSize", "inkSep"]) $(id).style.display = t === "crop" ? "none" : "";
   for (const b of document.querySelectorAll("[data-tool]")) b.setAttribute("aria-pressed", b.dataset.tool === $("tool").value);
   $("orig").style.cursor = $("tool").value === "text" ? "text" : "crosshair";
+  if (isNarrow()) {
+    if (document.body.classList.contains("wipe") || $("view3d").checked) setView("2d");
+    setPhonePane("picture");
+  }
 };
 for (const b of document.querySelectorAll("[data-tool]")) b.onclick = () => { $("tool").value = b.dataset.tool; $("tool").onchange(); };
 $("undo").onclick = e => { e.preventDefault(); if (history.length) { wctx.putImageData(history.pop(), 0, 0); showWork(); sendWork(); } };
@@ -1617,6 +1835,7 @@ document.addEventListener("keydown", e => {
   else if (k === "-" && original) zoomTo(Z.s / 1.5);
   else if (k === "0") zoomTo(1);
 });
+window.addEventListener("resize", () => { updateViewButtons(); fitAll(); });
 init();
 </script>
 </body>

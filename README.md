@@ -37,7 +37,8 @@ You get a Bambu Studio project (`.3mf`) with the filament changes already placed
 - **Filament advice**: "Which filament would help most?" and "Suggest a full set for this picture"
 - **Picture tools**: crop, paint, text, grain smoothing, colour reduction, detail boost and dithering
 - **Frames** in ten styles, **stands**, **business cards** and **walls** made of tiles (see below)
-- **3D view** of the finished relief, light and dark theme, works on a phone too
+- **3D view** of the finished relief, light and dark theme
+- **Works on your phone**: pinned preview while you move sliders, pinch to zoom, finger-sized controls
 - **No cloud, no account**: everything runs on your own computer
 
 ## The app
@@ -57,6 +58,18 @@ The right panel shows the size, how close the colours get, and every filament ch
   <tr>
     <td align="center">3D view: turn and zoom the relief before printing</td>
     <td align="center">Dark mode follows your system setting</td>
+  </tr>
+</table>
+
+### On your phone
+
+<table>
+  <tr>
+    <td width="34%"><img src="docs/images/app-phone.png" alt="The app on a phone: the print preview stays pinned at the top while the sliders scroll underneath"></td>
+    <td>Run <code>layertone-ui --host 0.0.0.0</code> and open the address it prints on your phone (same Wi-Fi).
+    The preview stays pinned at the top while you scroll the sliders, so you see every change as you make it.
+    Pinch to zoom, drag filaments by their handle to reorder the Stack, and switch between your picture and the
+    print with the view button.</td>
   </tr>
 </table>
 
@@ -99,7 +112,7 @@ tile is labelled so you know where it goes.
 layertone is a Python package. You need Python 3.10 or newer.
 
 ```bash
-pip install "layertone @ https://github.com/Akoozie/layertone/releases/download/v0.1.0-beta.2/layertone-0.1.0b2-py3-none-any.whl"
+pip install "layertone @ https://github.com/Akoozie/layertone/releases/download/v0.1.0-beta.3/layertone-0.1.0b3-py3-none-any.whl"
 ```
 
 Or from source:
